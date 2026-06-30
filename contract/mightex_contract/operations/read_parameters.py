@@ -7,7 +7,7 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.components import ChannelState
+from mightex_contract.shared_models import ChannelState
 from mightex_contract.errors import Error
 from mightex_contract.operations.base import ChannelRequest
 

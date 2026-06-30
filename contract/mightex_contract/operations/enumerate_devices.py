@@ -7,7 +7,7 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.components import DeviceDescriptor
+from mightex_contract.shared_models import DeviceDescriptor
 from mightex_contract.errors import Error
 
 

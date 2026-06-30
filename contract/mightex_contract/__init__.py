@@ -11,7 +11,7 @@ imported from mightex_contract.operations.
 
 from __future__ import annotations
 
-from mightex_contract.components import (
+from mightex_contract.shared_models import (
     ChannelState,
     ControllerCapabilities,
     DeviceDescriptor,
@@ -35,7 +35,7 @@ __all__ = [
     # profile
     "ProfileStep",
     "Profile",
-    # component shapes
+    # shared models
     "NormalParameters",
     "StrobeParameters",
     "TriggerParameters",

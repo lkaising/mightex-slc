@@ -1,4 +1,4 @@
-"""Shape models read from or sent to the device.
+"""Shared Pydantic models read from or sent to the device.
 
 Field names and units come straight from the public API skeleton.
 """

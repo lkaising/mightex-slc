@@ -131,16 +131,16 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
 }
 
 # Component files, grouped to match the knowledge-transfer section 10 file tree.
-# The name "dataclasses.yaml" is a holdover from the earlier dataclasses-based
-# design; the models are now Pydantic, and the new ControllerCapabilities model
-# lives there too.
+# The shared_models group holds the reusable shared Pydantic model schemas
+# (parameter models, ChannelState, DeviceInfo, DeviceDescriptor, and
+# ControllerCapabilities).
 COMPONENT_GROUPS: dict[str, dict[str, Any]] = {
     "enums": {
         "OperatingMode": OperatingMode,
         "TriggerPolarity": TriggerPolarity,
         "ModuleType": ModuleType,
     },
-    "dataclasses": {
+    "shared_models": {
         "NormalParameters": NormalParameters,
         "StrobeParameters": StrobeParameters,
         "TriggerParameters": TriggerParameters,

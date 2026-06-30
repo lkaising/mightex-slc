@@ -422,7 +422,7 @@ contract/
 ├── mightex_contract/              # SOURCE OF TRUTH: Pydantic contract models
 │   ├── __init__.py
 │   ├── enums.py
-│   ├── components.py              # NormalParameters, ChannelState, DeviceInfo...
+│   ├── shared_models.py           # NormalParameters, ChannelState, DeviceInfo...
 │   ├── profile.py
 │   ├── errors.py                  # Ok/Error reply models and error type enum
 │   └── operations/
@@ -441,7 +441,7 @@ contract/
 │   ├── operations.yaml
 │   ├── components/
 │   │   ├── enums.yaml
-│   │   ├── dataclasses.yaml
+│   │   ├── shared_models.yaml
 │   │   ├── profile.yaml
 │   │   └── error.yaml
 │   └── operations/
@@ -470,7 +470,7 @@ Channel-level (all carry device_id and channel): `configure_normal`,
 `get_active_mode`, `read_parameters`, `read_load_voltage`.
 
 The shape models (enums, the parameter models, `ChannelState`, `DeviceInfo`,
-`DeviceDescriptor`, profile) are authored once in the component modules and
+`DeviceDescriptor`, profile) are authored once in the shared model module and
 referenced by the operations that return or accept them.
 
 ---
