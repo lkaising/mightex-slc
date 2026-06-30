@@ -1,0 +1,23 @@
+[project]
+name = "mightex-slc"
+version = "0.0.0"
+description = "Library for controlling Mightex Sirius SLC LED controllers"
+requires-python = ">=3.10"
+dependencies = [
+    # Contract models are the source of truth and the single validator at the
+    # client/server seam. Pin the major version so generated schema output stays
+    # deterministic for the CI staleness check.
+    "pydantic>=2,<3",
+]
+
+[project.optional-dependencies]
+# pyyaml is only needed to run contract/generate_schemas.py; it is not a runtime
+# dependency of the contract package.
+schemas = ["pyyaml"]
+
+# TODO: build backend and package discovery are deferred. The repo has multiple
+# top-level package directories (contract/mightex_contract, client/mightex_client,
+# server/mightex_server, transport/...) and no chosen backend yet. Declaring
+# packages or a [build-system] now would be guessing at the final layout. Until
+# then, contract/generate_schemas.py self-bootstraps sys.path so it runs without
+# an install, and tests can place contract/ on the path directly.
