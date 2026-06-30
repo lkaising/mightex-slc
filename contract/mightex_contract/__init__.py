@@ -11,7 +11,7 @@ imported from mightex_contract.operations.
 
 from __future__ import annotations
 
-from mightex_contract.shared_models import (
+from mightex_contract.components.shared_models import (
     ChannelState,
     ControllerCapabilities,
     DeviceDescriptor,
@@ -21,9 +21,9 @@ from mightex_contract.shared_models import (
     TriggerParameters,
 )
 from mightex_contract.constants import REPEAT_FOREVER
-from mightex_contract.enums import ModuleType, OperatingMode, TriggerPolarity
-from mightex_contract.errors import Error, ErrorType
-from mightex_contract.profile import Profile, ProfileStep
+from mightex_contract.components.enums import ModuleType, OperatingMode, TriggerPolarity
+from mightex_contract.components.errors import Error, ErrorType
+from mightex_contract.components.profile import Profile, ProfileStep
 
 __all__ = [
     # constant

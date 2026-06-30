@@ -8,8 +8,8 @@ from __future__ import annotations
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.enums import ModuleType, OperatingMode, TriggerPolarity
-from mightex_contract.profile import Profile
+from mightex_contract.components.enums import ModuleType, OperatingMode, TriggerPolarity
+from mightex_contract.components.profile import Profile
 
 
 class NormalParameters(ContractModel):

@@ -7,8 +7,8 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.shared_models import ControllerCapabilities
-from mightex_contract.errors import Error
+from mightex_contract.components.shared_models import ControllerCapabilities
+from mightex_contract.components.errors import Error
 
 
 class OpenDeviceRequest(ContractModel):

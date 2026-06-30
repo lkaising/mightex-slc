@@ -7,9 +7,9 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.errors import Error
+from mightex_contract.components.errors import Error
 from mightex_contract.operations.base import ChannelRequest
-from mightex_contract.profile import Profile
+from mightex_contract.components.profile import Profile
 
 
 class ConfigureStrobeRequest(ChannelRequest):
