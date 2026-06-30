@@ -3,16 +3,10 @@
 operation: read_load_voltage
 request:
   additionalProperties: false
-  description: 'Read the present load voltage on a channel.
-
-
-    Load voltage read-back is a voltage-monitoring module variant feature; on
-
-    modules without it the server reports UnsupportedOperationError. The reading
-
-    is meaningful only in NORMAL mode or a slow STROBE mode, because the
-
-    controller polls the load at a 20 ms interval.'
+  description: Read the present load voltage on a channel. Load voltage read-back
+    is a voltage-monitoring module variant feature; on modules without it the server
+    reports UnsupportedOperationError. The reading is meaningful only in NORMAL mode
+    or a slow STROBE mode, because the controller polls the load at a 20 ms interval.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -32,14 +26,9 @@ reply:
   $defs:
     Error:
       additionalProperties: false
-      description: 'Error reply envelope shared by every operation.
-
-
-        Runtime-only rule (does not export to JSON Schema): code is populated only
-
-        for DeviceCommandError. It may still be None for a DeviceCommandError when
-
-        the device reports no code.'
+      description: 'Error reply envelope shared by every operation. Runtime-only rule
+        (does not export to JSON Schema): code is populated only for DeviceCommandError.
+        It may still be None for a DeviceCommandError when the device reports no code.'
       properties:
         status:
           const: error
@@ -66,18 +55,12 @@ reply:
       title: Error
       type: object
     ErrorType:
-      description: 'Library exception names reported in an error reply.
-
-
-        These are the leaf exception types the client maps an error reply back onto.
-
-        The abstract root MightexLEDError is intentionally absent because it is never
-
-        raised directly. DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even
-
-        though the latter is a subtype of the former, so the client can map directly
-
-        to the most specific class.'
+      description: Library exception names reported in an error reply. These are the
+        leaf exception types the client maps an error reply back onto. The abstract
+        root MightexLEDError is intentionally absent because it is never raised directly.
+        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
+        is a subtype of the former, so the client can map directly to the most specific
+        class.
       enum:
       - ValueError
       - ControllerClosedError

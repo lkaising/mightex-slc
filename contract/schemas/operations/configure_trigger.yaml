@@ -5,18 +5,11 @@ request:
   $defs:
     ProfileStep:
       additionalProperties: false
-      description: 'A single profile step.
-
-
-        Note: the public API skeleton expresses a step as a bare tuple
-
-        (current_ma, time_us). The contract deliberately replaces that tuple with
-
-        this named model, so the serialized form is
-
-        {"current_ma": 10.0, "time_us": 1000} rather than [10.0, 1000]. That object
-
-        form is the intended public surface.'
+      description: 'A single profile step. Note: the public API skeleton expresses
+        a step as a bare tuple (current_ma, time_us). The contract deliberately replaces
+        that tuple with this named model, so the serialized form is {"current_ma":
+        10.0, "time_us": 1000} rather than [10.0, 1000]. That object form is the intended
+        public surface.'
       properties:
         current_ma:
           description: Step current in milliamps
@@ -41,18 +34,11 @@ request:
       title: TriggerPolarity
       type: integer
   additionalProperties: false
-  description: 'Store TRIGGER mode parameters for a channel.
-
-
-    The number of profile steps must not exceed the module''s max_profile_steps.
-
-    That per-module limit is enforced server-side at runtime and does not export
-
-    to JSON Schema; the static Profile bound is only the absolute 127-step
-
-    ceiling. Trigger mode is unsupported on MA and CA modules, which the server
-
-    reports as UnsupportedOperationError.'
+  description: Store TRIGGER mode parameters for a channel. The number of profile
+    steps must not exceed the module's max_profile_steps. That per-module limit is
+    enforced server-side at runtime and does not export to JSON Schema; the static
+    Profile bound is only the absolute 127-step ceiling. Trigger mode is unsupported
+    on MA and CA modules, which the server reports as UnsupportedOperationError.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -102,14 +88,9 @@ reply:
       type: object
     Error:
       additionalProperties: false
-      description: 'Error reply envelope shared by every operation.
-
-
-        Runtime-only rule (does not export to JSON Schema): code is populated only
-
-        for DeviceCommandError. It may still be None for a DeviceCommandError when
-
-        the device reports no code.'
+      description: 'Error reply envelope shared by every operation. Runtime-only rule
+        (does not export to JSON Schema): code is populated only for DeviceCommandError.
+        It may still be None for a DeviceCommandError when the device reports no code.'
       properties:
         status:
           const: error
@@ -136,18 +117,12 @@ reply:
       title: Error
       type: object
     ErrorType:
-      description: 'Library exception names reported in an error reply.
-
-
-        These are the leaf exception types the client maps an error reply back onto.
-
-        The abstract root MightexLEDError is intentionally absent because it is never
-
-        raised directly. DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even
-
-        though the latter is a subtype of the former, so the client can map directly
-
-        to the most specific class.'
+      description: Library exception names reported in an error reply. These are the
+        leaf exception types the client maps an error reply back onto. The abstract
+        root MightexLEDError is intentionally absent because it is never raised directly.
+        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
+        is a subtype of the former, so the client can map directly to the most specific
+        class.
       enum:
       - ValueError
       - ControllerClosedError

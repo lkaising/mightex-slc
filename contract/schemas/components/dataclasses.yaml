@@ -23,18 +23,11 @@ StrobeParameters:
   $defs:
     ProfileStep:
       additionalProperties: false
-      description: 'A single profile step.
-
-
-        Note: the public API skeleton expresses a step as a bare tuple
-
-        (current_ma, time_us). The contract deliberately replaces that tuple with
-
-        this named model, so the serialized form is
-
-        {"current_ma": 10.0, "time_us": 1000} rather than [10.0, 1000]. That object
-
-        form is the intended public surface.'
+      description: 'A single profile step. Note: the public API skeleton expresses
+        a step as a bare tuple (current_ma, time_us). The contract deliberately replaces
+        that tuple with this named model, so the serialized form is {"current_ma":
+        10.0, "time_us": 1000} rather than [10.0, 1000]. That object form is the intended
+        public surface.'
       properties:
         current_ma:
           description: Step current in milliamps
@@ -83,18 +76,11 @@ TriggerParameters:
   $defs:
     ProfileStep:
       additionalProperties: false
-      description: 'A single profile step.
-
-
-        Note: the public API skeleton expresses a step as a bare tuple
-
-        (current_ma, time_us). The contract deliberately replaces that tuple with
-
-        this named model, so the serialized form is
-
-        {"current_ma": 10.0, "time_us": 1000} rather than [10.0, 1000]. That object
-
-        form is the intended public surface.'
+      description: 'A single profile step. Note: the public API skeleton expresses
+        a step as a bare tuple (current_ma, time_us). The contract deliberately replaces
+        that tuple with this named model, so the serialized form is {"current_ma":
+        10.0, "time_us": 1000} rather than [10.0, 1000]. That object form is the intended
+        public surface.'
       properties:
         current_ma:
           description: Step current in milliamps
@@ -164,12 +150,9 @@ ChannelState:
       title: NormalParameters
       type: object
     OperatingMode:
-      description: 'Working mode of a channel.
-
-
-        Each channel independently holds parameters for NORMAL, STROBE, and TRIGGER,
-
-        and one mode is active at a time. DISABLE turns the channel output off.'
+      description: Working mode of a channel. Each channel independently holds parameters
+        for NORMAL, STROBE, and TRIGGER, and one mode is active at a time. DISABLE
+        turns the channel output off.
       enum:
       - 0
       - 1
@@ -179,18 +162,11 @@ ChannelState:
       type: integer
     ProfileStep:
       additionalProperties: false
-      description: 'A single profile step.
-
-
-        Note: the public API skeleton expresses a step as a bare tuple
-
-        (current_ma, time_us). The contract deliberately replaces that tuple with
-
-        this named model, so the serialized form is
-
-        {"current_ma": 10.0, "time_us": 1000} rather than [10.0, 1000]. That object
-
-        form is the intended public surface.'
+      description: 'A single profile step. Note: the public API skeleton expresses
+        a step as a bare tuple (current_ma, time_us). The contract deliberately replaces
+        that tuple with this named model, so the serialized form is {"current_ma":
+        10.0, "time_us": 1000} rather than [10.0, 1000]. That object form is the intended
+        public surface.'
       properties:
         current_ma:
           description: Step current in milliamps
@@ -320,18 +296,11 @@ DeviceInfo:
 DeviceDescriptor:
   $defs:
     ModuleType:
-      description: 'Module family reported by a controller.
-
-
-        The integer ordering is non-alphabetical and load-bearing; it is the device''s
-
-        own numbering. The family does not always distinguish hardware variants (for
-
-        example SLC-MA04-MU and SLC-CA04-MU report as MA and CA but differ in
-
-        behavior), so prefer the controller capability queries over switching on this
-
-        value.'
+      description: Module family reported by a controller. The integer ordering is
+        non-alphabetical and load-bearing; it is the device's own numbering. The family
+        does not always distinguish hardware variants (for example SLC-MA04-MU and
+        SLC-CA04-MU report as MA and CA but differ in behavior), so prefer the controller
+        capability queries over switching on this value.
       enum:
       - 0
       - 1
@@ -349,16 +318,11 @@ DeviceDescriptor:
       title: ModuleType
       type: integer
   additionalProperties: false
-  description: 'Identity of a connected controller as seen during discovery.
-
-
-    The documents expose only the number of connected controllers before a
-
-    controller is opened. Serial number, module type, and channel count are read
-
-    through functions that need an open device, so they are None here until the
-
-    device is opened and are never guessed.'
+  description: Identity of a connected controller as seen during discovery. The documents
+    expose only the number of connected controllers before a controller is opened.
+    Serial number, module type, and channel count are read through functions that
+    need an open device, so they are None here until the device is opened and are
+    never guessed.
   properties:
     index:
       description: Zero-based device index for open_device
@@ -393,18 +357,11 @@ DeviceDescriptor:
 ControllerCapabilities:
   $defs:
     ModuleType:
-      description: 'Module family reported by a controller.
-
-
-        The integer ordering is non-alphabetical and load-bearing; it is the device''s
-
-        own numbering. The family does not always distinguish hardware variants (for
-
-        example SLC-MA04-MU and SLC-CA04-MU report as MA and CA but differ in
-
-        behavior), so prefer the controller capability queries over switching on this
-
-        value.'
+      description: Module family reported by a controller. The integer ordering is
+        non-alphabetical and load-bearing; it is the device's own numbering. The family
+        does not always distinguish hardware variants (for example SLC-MA04-MU and
+        SLC-CA04-MU report as MA and CA but differ in behavior), so prefer the controller
+        capability queries over switching on this value.
       enum:
       - 0
       - 1
@@ -422,12 +379,9 @@ ControllerCapabilities:
       title: ModuleType
       type: integer
   additionalProperties: false
-  description: 'Aggregated read-only capabilities of an open controller.
-
-
-    These fields are device truth sent server-to-client, so the le and gt bounds
-
-    below are sanity guards on a trusted source, not request validation.'
+  description: Aggregated read-only capabilities of an open controller. These fields
+    are device truth sent server-to-client, so the le and gt bounds below are sanity
+    guards on a trusted source, not request validation.
   properties:
     module_type:
       $ref: '#/$defs/ModuleType'

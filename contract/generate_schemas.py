@@ -28,6 +28,7 @@ refinement.
 from __future__ import annotations
 
 import os
+import re
 import sys
 
 # Bootstrap the import path so `mightex_contract` resolves when this script is
@@ -65,6 +66,28 @@ HEADER = (
 
 SCHEMAS_DIR = Path(__file__).resolve().parent / "schemas"
 
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def _normalize_descriptions(obj: Any) -> Any:
+    """Recursively collapse "description" strings to single-line text.
+
+    Docstring paragraph breaks survive into Pydantic's JSON Schema output as
+    embedded newlines, which PyYAML can only render as a quoted scalar with a
+    blank physical line. Collapsing them to single spaces keeps descriptions
+    as flowing prose, so PyYAML's normal width-wrapping needs no blank lines.
+    """
+    if isinstance(obj, dict):
+        return {
+            key: _WHITESPACE_RE.sub(" ", value).strip()
+            if key == "description" and isinstance(value, str)
+            else _normalize_descriptions(value)
+            for key, value in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_normalize_descriptions(item) for item in obj]
+    return obj
+
 
 def _model_schema(model: Any) -> dict:
     """JSON Schema for a Pydantic BaseModel subclass."""
@@ -80,7 +103,7 @@ def _dump(path: Path, payload: dict) -> None:
     """Write payload as YAML with the generated header and a trailing newline."""
     path.parent.mkdir(parents=True, exist_ok=True)
     body = yaml.safe_dump(
-        payload,
+        _normalize_descriptions(payload),
         sort_keys=False,
         default_flow_style=False,
         allow_unicode=True,

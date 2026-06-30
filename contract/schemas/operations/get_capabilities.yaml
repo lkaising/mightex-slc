@@ -17,12 +17,9 @@ reply:
   $defs:
     ControllerCapabilities:
       additionalProperties: false
-      description: 'Aggregated read-only capabilities of an open controller.
-
-
-        These fields are device truth sent server-to-client, so the le and gt bounds
-
-        below are sanity guards on a trusted source, not request validation.'
+      description: Aggregated read-only capabilities of an open controller. These
+        fields are device truth sent server-to-client, so the le and gt bounds below
+        are sanity guards on a trusted source, not request validation.
       properties:
         module_type:
           $ref: '#/$defs/ModuleType'
@@ -78,14 +75,9 @@ reply:
       type: object
     Error:
       additionalProperties: false
-      description: 'Error reply envelope shared by every operation.
-
-
-        Runtime-only rule (does not export to JSON Schema): code is populated only
-
-        for DeviceCommandError. It may still be None for a DeviceCommandError when
-
-        the device reports no code.'
+      description: 'Error reply envelope shared by every operation. Runtime-only rule
+        (does not export to JSON Schema): code is populated only for DeviceCommandError.
+        It may still be None for a DeviceCommandError when the device reports no code.'
       properties:
         status:
           const: error
@@ -112,18 +104,12 @@ reply:
       title: Error
       type: object
     ErrorType:
-      description: 'Library exception names reported in an error reply.
-
-
-        These are the leaf exception types the client maps an error reply back onto.
-
-        The abstract root MightexLEDError is intentionally absent because it is never
-
-        raised directly. DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even
-
-        though the latter is a subtype of the former, so the client can map directly
-
-        to the most specific class.'
+      description: Library exception names reported in an error reply. These are the
+        leaf exception types the client maps an error reply back onto. The abstract
+        root MightexLEDError is intentionally absent because it is never raised directly.
+        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
+        is a subtype of the former, so the client can map directly to the most specific
+        class.
       enum:
       - ValueError
       - ControllerClosedError
@@ -150,18 +136,11 @@ reply:
       title: GetCapabilitiesOk
       type: object
     ModuleType:
-      description: 'Module family reported by a controller.
-
-
-        The integer ordering is non-alphabetical and load-bearing; it is the device''s
-
-        own numbering. The family does not always distinguish hardware variants (for
-
-        example SLC-MA04-MU and SLC-CA04-MU report as MA and CA but differ in
-
-        behavior), so prefer the controller capability queries over switching on this
-
-        value.'
+      description: Module family reported by a controller. The integer ordering is
+        non-alphabetical and load-bearing; it is the device's own numbering. The family
+        does not always distinguish hardware variants (for example SLC-MA04-MU and
+        SLC-CA04-MU report as MA and CA but differ in behavior), so prefer the controller
+        capability queries over switching on this value.
       enum:
       - 0
       - 1
