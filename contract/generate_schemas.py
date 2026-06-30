@@ -76,6 +76,8 @@ def _adapter_schema(tp: Any) -> dict:
     return TypeAdapter(tp).json_schema()
 
 
+# PyYAML can only encode an embedded newline in a quoted scalar via a blank
+# physical line, so docstring paragraph breaks would dump as blank lines.
 def _normalize_descriptions(obj: Any) -> Any:
     """Recursively collapse "description" string values to single-line text."""
     if isinstance(obj, dict):
