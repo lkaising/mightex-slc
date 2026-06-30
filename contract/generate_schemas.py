@@ -116,10 +116,7 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
     "device_info": (ops.DeviceInfoRequest, ops.DeviceInfoReply),
     "initialize": (ops.InitializeRequest, ops.InitializeReply),
     "store_settings": (ops.StoreSettingsRequest, ops.StoreSettingsReply),
-    "restore_factory_defaults": (
-        ops.RestoreFactoryDefaultsRequest,
-        ops.RestoreFactoryDefaultsReply,
-    ),
+    "restore_factory_defaults": (ops.RestoreFactoryDefaultsRequest, ops.RestoreFactoryDefaultsReply),
     "soft_reset": (ops.SoftResetRequest, ops.SoftResetReply),
     "set_fan_pwm_level": (ops.SetFanPwmLevelRequest, ops.SetFanPwmLevelReply),
     "close_device": (ops.CloseDeviceRequest, ops.CloseDeviceReply),
