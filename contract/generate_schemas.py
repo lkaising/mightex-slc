@@ -50,7 +50,6 @@ from mightex_contract import (  # noqa: E402
     ModuleType,
     NormalParameters,
     OperatingMode,
-    Profile,
     ProfileStep,
     StrobeParameters,
     TriggerParameters,
@@ -130,16 +129,26 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
     "read_load_voltage": (ops.ReadLoadVoltageRequest, ops.ReadLoadVoltageReply),
 }
 
-# Component files, one per reusable concept, mirroring the one-file-per-operation
-# convention. Each concept maps to the schema(s) it owns and the concept name is
-# the file stem (e.g. normal_parameters -> components/normal_parameters.yaml).
-# profile and error_envelope stay grouped because each is a single cohesive
-# concept (Profile/ProfileStep; the Error reply envelope and its ErrorType).
+# Component files, one generated schema per file, mirroring the one-file-per-operation
+# convention. Each stem maps to the single schema it owns and the stem is the file name
+# (e.g. normal_parameters -> components/normal_parameters.yaml).
 #
-# Root-shape note: each file keeps a top-level {SchemaName: schema} mapping, so a
-# single-schema concept still nests under its schema-name key. Collapsing that now
-# redundant wrapper key is a deferred refinement, intentionally left out here so
-# the generated component root shape stays unchanged by this split.
+# One-schema-per-file is an intentional reversal of the earlier "one cohesive concept
+# per file" grouping: profile (ProfileStep + Profile) and error_envelope (Error +
+# ErrorType) used to share a file. We chose artifact uniformity over concept grouping so
+# every component file is single-schema, which also regularizes the name -> file-stem
+# mapping a later cross-file $ref refactor depends on. Deliberate invariant change, not drift.
+#   - error_envelope.py intentionally stays one Python module defining both Error and
+#     ErrorType, even though they now emit to error.yaml and error_type.yaml. This is a
+#     generated-artifact granularity change only, not a module split.
+#   - Profile (the Annotated[list[ProfileStep], max_length=127] alias in profile.py) is
+#     intentionally a Python-only convenience alias used in API signatures. It is
+#     deliberately NOT exported as a generated schema; only ProfileStep emits.
+#
+# Root-shape note: each file keeps a top-level {SchemaName: schema} mapping, so a single-
+# schema concept still nests under its schema-name key. Collapsing that now redundant
+# wrapper key is a deferred refinement, intentionally left out here so the generated
+# component root shape stays unchanged by this split.
 COMPONENTS: dict[str, dict[str, Any]] = {
     "normal_parameters": {"NormalParameters": NormalParameters},
     "strobe_parameters": {"StrobeParameters": StrobeParameters},
@@ -151,14 +160,9 @@ COMPONENTS: dict[str, dict[str, Any]] = {
     "operating_mode": {"OperatingMode": OperatingMode},
     "trigger_polarity": {"TriggerPolarity": TriggerPolarity},
     "module_type": {"ModuleType": ModuleType},
-    "profile": {
-        "ProfileStep": ProfileStep,
-        "Profile": Profile,
-    },
-    "error_envelope": {
-        "ErrorType": ErrorType,
-        "Error": Error,
-    },
+    "profile_step": {"ProfileStep": ProfileStep},
+    "error": {"Error": Error},
+    "error_type": {"ErrorType": ErrorType},
 }
 
 

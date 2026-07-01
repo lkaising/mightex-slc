@@ -66,5 +66,6 @@ components:
   operating_mode: components/operating_mode.yaml
   trigger_polarity: components/trigger_polarity.yaml
   module_type: components/module_type.yaml
-  profile: components/profile.yaml
-  error_envelope: components/error_envelope.yaml
+  profile_step: components/profile_step.yaml
+  error: components/error.yaml
+  error_type: components/error_type.yaml
