@@ -7,8 +7,8 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.components.enums import OperatingMode
-from mightex_contract.components.errors import Error
+from mightex_contract.components.operating_mode import OperatingMode
+from mightex_contract.components.error_envelope import Error
 from mightex_contract.operations.base import ChannelRequest
 
 

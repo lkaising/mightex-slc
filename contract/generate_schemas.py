@@ -130,30 +130,32 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
     "read_load_voltage": (ops.ReadLoadVoltageRequest, ops.ReadLoadVoltageReply),
 }
 
-# Component files, grouped to match the knowledge-transfer section 10 file tree.
-# The shared_models group holds the reusable shared Pydantic model schemas
-# (parameter models, ChannelState, DeviceInfo, DeviceDescriptor, and
-# ControllerCapabilities).
-COMPONENT_GROUPS: dict[str, dict[str, Any]] = {
-    "enums": {
-        "OperatingMode": OperatingMode,
-        "TriggerPolarity": TriggerPolarity,
-        "ModuleType": ModuleType,
-    },
-    "shared_models": {
-        "NormalParameters": NormalParameters,
-        "StrobeParameters": StrobeParameters,
-        "TriggerParameters": TriggerParameters,
-        "ChannelState": ChannelState,
-        "DeviceInfo": DeviceInfo,
-        "DeviceDescriptor": DeviceDescriptor,
-        "ControllerCapabilities": ControllerCapabilities,
-    },
+# Component files, one per reusable concept, mirroring the one-file-per-operation
+# convention. Each concept maps to the schema(s) it owns and the concept name is
+# the file stem (e.g. normal_parameters -> components/normal_parameters.yaml).
+# profile and error_envelope stay grouped because each is a single cohesive
+# concept (Profile/ProfileStep; the Error reply envelope and its ErrorType).
+#
+# Root-shape note: each file keeps a top-level {SchemaName: schema} mapping, so a
+# single-schema concept still nests under its schema-name key. Collapsing that now
+# redundant wrapper key is a deferred refinement, intentionally left out here so
+# the generated component root shape stays unchanged by this split.
+COMPONENTS: dict[str, dict[str, Any]] = {
+    "normal_parameters": {"NormalParameters": NormalParameters},
+    "strobe_parameters": {"StrobeParameters": StrobeParameters},
+    "trigger_parameters": {"TriggerParameters": TriggerParameters},
+    "channel_state": {"ChannelState": ChannelState},
+    "device_info": {"DeviceInfo": DeviceInfo},
+    "device_descriptor": {"DeviceDescriptor": DeviceDescriptor},
+    "controller_capabilities": {"ControllerCapabilities": ControllerCapabilities},
+    "operating_mode": {"OperatingMode": OperatingMode},
+    "trigger_polarity": {"TriggerPolarity": TriggerPolarity},
+    "module_type": {"ModuleType": ModuleType},
     "profile": {
         "ProfileStep": ProfileStep,
         "Profile": Profile,
     },
-    "error": {
+    "error_envelope": {
         "ErrorType": ErrorType,
         "Error": Error,
     },
@@ -168,15 +170,15 @@ def _schema_for(obj: Any) -> dict:
 
 
 def generate_components() -> dict[str, str]:
-    """Write the grouped component files; return a name -> file index."""
+    """Write one file per component concept; return a name -> file index."""
     components_dir = SCHEMAS_DIR / "components"
     index: dict[str, str] = {}
-    for group, members in COMPONENT_GROUPS.items():
+    for concept, members in COMPONENTS.items():
         _dump(
-            components_dir / f"{group}.yaml",
+            components_dir / f"{concept}.yaml",
             {name: _schema_for(obj) for name, obj in members.items()},
         )
-        index[group] = f"components/{group}.yaml"
+        index[concept] = f"components/{concept}.yaml"
     return index
 
 

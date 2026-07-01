@@ -56,7 +56,15 @@ operations:
     request: operations/read_load_voltage.yaml#/request
     reply: operations/read_load_voltage.yaml#/reply
 components:
-  enums: components/enums.yaml
-  shared_models: components/shared_models.yaml
+  normal_parameters: components/normal_parameters.yaml
+  strobe_parameters: components/strobe_parameters.yaml
+  trigger_parameters: components/trigger_parameters.yaml
+  channel_state: components/channel_state.yaml
+  device_info: components/device_info.yaml
+  device_descriptor: components/device_descriptor.yaml
+  controller_capabilities: components/controller_capabilities.yaml
+  operating_mode: components/operating_mode.yaml
+  trigger_polarity: components/trigger_polarity.yaml
+  module_type: components/module_type.yaml
   profile: components/profile.yaml
-  error: components/error.yaml
+  error_envelope: components/error_envelope.yaml

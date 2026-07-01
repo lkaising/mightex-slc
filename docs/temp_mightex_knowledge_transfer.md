@@ -335,9 +335,13 @@ They are generated from the Pydantic models.
 
 The generated files preserve the per-operation organization, because that
 structure is valuable for human readability, documentation, and contract review.
-Each operation gets its own generated schema file, and shared components get
-their own files under `schemas/components/`. Generated files are marked with a
-"generated; do not edit" header where feasible.
+Each operation gets its own generated schema file, and each reusable component
+concept likewise gets its own file under `schemas/components/`, mirroring the
+one-file-per-operation convention (`Profile`/`ProfileStep` and the
+`Error`/`ErrorType` envelope each stay grouped as one concept). Generated files
+are marked with a "generated; do not edit" header where feasible. (Deferred: each
+single-schema component file still nests its schema under a top-level schema-name
+key; collapsing that now-redundant wrapper is left for later.)
 
 The source of truth is the Pydantic model. Example of an operation request model
 with a cross-field rule:
@@ -367,7 +371,7 @@ class ConfigureNormalRequest(BaseModel):
 The reply envelope, shared by every operation, is also Pydantic:
 
 ```python
-# contract/mightex_contract/errors.py
+# contract/mightex_contract/components/error_envelope.py
 from enum import Enum
 from typing import Annotated, Literal, Union
 from pydantic import BaseModel, ConfigDict, Field
@@ -420,35 +424,43 @@ decision regardless of how the schema is generated.
 ```
 contract/
 ├── mightex_contract/              # SOURCE OF TRUTH: Pydantic contract models
-│   ├── __init__.py
-│   ├── enums.py
-│   ├── shared_models.py           # NormalParameters, ChannelState, DeviceInfo...
-│   ├── profile.py
-│   ├── errors.py                  # Ok/Error reply models and error type enum
+│   ├── __init__.py                # re-exports every component for convenience
+│   ├── base.py                    # ContractModel base
+│   ├── constants.py               # REPEAT_FOREVER, etc.
+│   ├── components/                # one module per reusable component concept
+│   │   ├── __init__.py            # re-exports every component
+│   │   ├── operating_mode.py      # enums: one concept per file
+│   │   ├── trigger_polarity.py
+│   │   ├── module_type.py
+│   │   ├── normal_parameters.py   # shape models: one concept per file
+│   │   ├── strobe_parameters.py
+│   │   ├── trigger_parameters.py
+│   │   ├── channel_state.py
+│   │   ├── device_info.py
+│   │   ├── device_descriptor.py
+│   │   ├── controller_capabilities.py
+│   │   ├── profile.py             # grouped concept: Profile + ProfileStep
+│   │   └── error_envelope.py      # grouped concept: Error + ErrorType
 │   └── operations/
 │       ├── __init__.py
 │       ├── enumerate_devices.py
 │       ├── open_device.py
 │       ├── configure_normal.py
-│       ├── set_normal_current.py
-│       ├── configure_strobe.py
-│       ├── configure_trigger.py
-│       ├── set_active_mode.py
-│       ├── read_parameters.py
 │       └── ...
 │
 ├── schemas/                       # GENERATED artifacts; committed, not hand-edited
-│   ├── operations.yaml
-│   ├── components/
-│   │   ├── enums.yaml
-│   │   ├── shared_models.yaml
+│   ├── operations.yaml            # index over operations + components
+│   ├── components/                # one generated file per component concept
+│   │   ├── operating_mode.yaml
+│   │   ├── normal_parameters.yaml
+│   │   ├── channel_state.yaml
 │   │   ├── profile.yaml
-│   │   └── error.yaml
+│   │   ├── error_envelope.yaml
+│   │   └── ...
 │   └── operations/
 │       ├── enumerate_devices.yaml
 │       ├── open_device.yaml
 │       ├── configure_normal.yaml
-│       ├── set_normal_current.yaml
 │       └── ...
 │
 └── generate_schemas.py

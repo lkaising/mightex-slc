@@ -7,8 +7,8 @@ from typing import Annotated, Literal, Union
 from pydantic import Field
 
 from mightex_contract.base import ContractModel
-from mightex_contract.components.shared_models import DeviceDescriptor
-from mightex_contract.components.errors import Error
+from mightex_contract.components.device_descriptor import DeviceDescriptor
+from mightex_contract.components.error_envelope import Error
 
 
 class EnumerateDevicesRequest(ContractModel):
