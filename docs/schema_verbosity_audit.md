@@ -419,17 +419,17 @@ both deferrals. These are acknowledged debt, not accidents.
 
 ## 7. Determinism context (why the timing matters)
 
-The generator docstring states determinism *"relies on a pinned pydantic (see
-`pyproject.toml`)."* In fact `pyproject.toml` declares `pydantic>=2,<3` (a range)
-and lists `pyyaml` as an unpinned optional extra (`schemas = ["pyyaml"]`). A minor
-bump of either could shift title generation, key ordering, `$ref`/`$defs` shape, or
-line-wrapping — silently changing the committed output. Combined with the fact that
-**no `.github/` and no regenerate-and-diff test exist yet** (`tests/` holds only
-`.gitkeep` files), this means: the staleness guard the docstring assumes is
-intended, not implemented. The practical consequence for this audit is that
-**regenerating/normalizing the output is free today and becomes churn-expensive the
-moment a golden-file staleness test lands** — so shape changes are best made before
-that test is written.
+RESOLVED (pinning): `pyproject.toml` now pins `pydantic==2.13.4` and
+`schemas = ["pyyaml==6.0.3"]`, matching the versions that produced the committed
+output — so a minor bump can no longer silently shift title generation, key
+ordering, `$ref`/`$defs` shape, or line-wrapping. The generator docstring's
+assumption of a pinned pydantic now holds.
+
+Still open: **no `.github/` and no regenerate-and-diff test exist yet** (`tests/`
+holds only `.gitkeep` files), so the staleness guard is not yet implemented. The
+practical consequence for this audit stands: **regenerating/normalizing the output
+is free today and becomes churn-expensive the moment a golden-file staleness test
+lands** — so shape changes are best made before that test is written.
 
 ## 8. Honesty about uncertainty
 

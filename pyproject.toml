@@ -7,13 +7,13 @@ dependencies = [
     # Contract models are the source of truth and the single validator at the
     # client/server seam. Pin the major version so generated schema output stays
     # deterministic for the CI staleness check.
-    "pydantic>=2,<3",
+    "pydantic==2.13.4",
 ]
 
 [project.optional-dependencies]
 # pyyaml is only needed to run contract/generate_schemas.py; it is not a runtime
 # dependency of the contract package.
-schemas = ["pyyaml"]
+schemas = ["pyyaml==6.0.3"]
 
 # TODO: build backend and package discovery are deferred. The repo has multiple
 # top-level package directories (contract/mightex_contract, client/mightex_client,

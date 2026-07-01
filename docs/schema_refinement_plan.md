@@ -64,25 +64,13 @@ regeneration; determinism unaffected (deletion only). Buys — removes ~180 nois
 lines and the case-mangled `Current Max Ma`/`Device Id` restatements from every
 review diff.
 
-### Task B — Pin pydantic and pyyaml exactly
+### Task B — Pin pydantic and pyyaml exactly — RESOLVED
 
-**Rationale (audit §7):** the docstring assumes a "pinned pydantic," but
-`pyproject.toml` has `pydantic>=2,<3` (a range) and `pyyaml` unpinned. Either bump
-can silently change generated output — the exact drift the future staleness test is
-meant to police.
-
-**Before / after:**
-
-```toml
-# before                         # after
-"pydantic>=2,<3"                 "pydantic==2.13.4"
-schemas = ["pyyaml"]             schemas = ["pyyaml==6.0.3"]
-```
-
-**Costs vs buys:** Costs — routine dependency-bump friction (must regenerate when
-bumping). Buys — makes the committed bytes reproducible, which is a precondition for
-the staleness diff to be meaningful rather than flaky. **Do this before any other
-task and before the CI diff is written.**
+`pyproject.toml` now pins `pydantic==2.13.4` and `schemas = ["pyyaml==6.0.3"]`.
+Regenerating from those exact versions reproduces the committed
+`contract/schemas/` bytes with zero diff, so the committed output is deterministic
+and the future staleness diff will be meaningful. Cost carried forward: bumping
+either pin now requires a regenerate-and-recommit pass.
 
 ### Task C — Add `$schema` (deferred; do NOT do now)
 
