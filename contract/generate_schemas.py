@@ -134,13 +134,12 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
 # (e.g. normal_parameters -> components/normal_parameters.yaml).
 #
 # One-schema-per-file is an intentional reversal of the earlier "one cohesive concept
-# per file" grouping: profile (ProfileStep + Profile) and error_envelope (Error +
+# per file" grouping: profile (ProfileStep + Profile) and the error concept (Error +
 # ErrorType) used to share a file. We chose artifact uniformity over concept grouping so
 # every component file is single-schema, which also regularizes the name -> file-stem
 # mapping a later cross-file $ref refactor depends on. Deliberate invariant change, not drift.
-#   - error_envelope.py intentionally stays one Python module defining both Error and
-#     ErrorType, even though they now emit to error.yaml and error_type.yaml. This is a
-#     generated-artifact granularity change only, not a module split.
+#   - The error concept is likewise split in the Python module layer: error.py (Error) and
+#     error_type.py (ErrorType), mirroring the error.yaml and error_type.yaml artifacts.
 #   - Profile (the Annotated[list[ProfileStep], max_length=127] alias in profile.py) is
 #     intentionally a Python-only convenience alias used in API signatures. It is
 #     deliberately NOT exported as a generated schema; only ProfileStep emits.

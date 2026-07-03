@@ -8,7 +8,7 @@ from pydantic import Field
 
 from mightex_contract.base import ContractModel
 from mightex_contract.components.controller_capabilities import ControllerCapabilities
-from mightex_contract.components.error_envelope import Error
+from mightex_contract.components.error import Error
 from mightex_contract.operations.base import DeviceRequest
 
 

@@ -15,7 +15,8 @@ from mightex_contract.components.channel_state import ChannelState
 from mightex_contract.components.controller_capabilities import ControllerCapabilities
 from mightex_contract.components.device_descriptor import DeviceDescriptor
 from mightex_contract.components.device_info import DeviceInfo
-from mightex_contract.components.error_envelope import Error, ErrorType
+from mightex_contract.components.error import Error
+from mightex_contract.components.error_type import ErrorType
 from mightex_contract.components.module_type import ModuleType
 from mightex_contract.components.normal_parameters import NormalParameters
 from mightex_contract.components.operating_mode import OperatingMode

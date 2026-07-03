@@ -8,7 +8,7 @@ from pydantic import Field
 
 from mightex_contract.base import ContractModel
 from mightex_contract.components.trigger_polarity import TriggerPolarity
-from mightex_contract.components.error_envelope import Error
+from mightex_contract.components.error import Error
 from mightex_contract.operations.base import ChannelRequest
 from mightex_contract.components.profile import Profile
 

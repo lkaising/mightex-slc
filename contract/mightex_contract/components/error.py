@@ -1,4 +1,4 @@
-"""Shared error reply envelope and the error-type enumeration.
+"""Shared error reply envelope returned by every operation.
 
 Every operation reply is a discriminated union of that operation's success model
 and the shared Error model defined here. The per-operation success models live
@@ -7,33 +7,12 @@ with their operations, not here, because read operations carry result data.
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Literal
 
 from pydantic import Field, model_validator
 
 from mightex_contract.base import ContractModel
-
-
-class ErrorType(str, Enum):
-    """Library exception names reported in an error reply.
-
-    These are the leaf exception types the client maps an error reply back onto.
-    The abstract root MightexLEDError is intentionally absent because it is never
-    raised directly. DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even
-    though the latter is a subtype of the former, so the client can map directly
-    to the most specific class.
-    """
-
-    # TODO (provisional): VALUE_ERROR may never appear in a server envelope,
-    # because client-side Pydantic validation raises ValueError before a request
-    # is ever sent. It is included for now and flagged.
-    VALUE_ERROR = "ValueError"
-    CONTROLLER_CLOSED = "ControllerClosedError"
-    DEVICE_CONNECTION = "DeviceConnectionError"
-    DEVICE_NOT_FOUND = "DeviceNotFoundError"
-    DEVICE_COMMAND = "DeviceCommandError"
-    UNSUPPORTED_OPERATION = "UnsupportedOperationError"
+from mightex_contract.components.error_type import ErrorType
 
 
 class Error(ContractModel):

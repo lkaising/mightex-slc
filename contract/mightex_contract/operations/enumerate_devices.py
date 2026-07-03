@@ -8,7 +8,7 @@ from pydantic import Field
 
 from mightex_contract.base import ContractModel
 from mightex_contract.components.device_descriptor import DeviceDescriptor
-from mightex_contract.components.error_envelope import Error
+from mightex_contract.components.error import Error
 
 
 class EnumerateDevicesRequest(ContractModel):
