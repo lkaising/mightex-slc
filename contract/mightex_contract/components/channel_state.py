@@ -17,9 +17,7 @@ from mightex_contract.components.trigger_parameters import TriggerParameters
 class ChannelState(ContractModel):
     """Snapshot of a channel read back from the device."""
 
-    active_mode: OperatingMode = Field(
-        description="The mode currently driving the channel output"
-    )
+    active_mode: OperatingMode = Field(description="The mode currently driving the channel output")
     normal: NormalParameters = Field(description="Stored NORMAL mode parameters")
     strobe: StrobeParameters = Field(description="Stored STROBE mode parameters")
     trigger: TriggerParameters = Field(description="Stored TRIGGER mode parameters")
