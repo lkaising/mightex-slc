@@ -13,12 +13,10 @@ StrobeParameters:
         current_ma:
           description: Step current in milliamps
           minimum: 0
-          title: Current Ma
           type: number
         time_us:
           description: Step duration in whole microseconds
           minimum: 0
-          title: Time Us
           type: integer
       required:
       - current_ma
@@ -31,21 +29,18 @@ StrobeParameters:
     current_max_ma:
       description: Maximum current in milliamps
       minimum: 0
-      title: Current Max Ma
       type: number
     repeat_count:
       description: Device repeat count; the profile is output repeat_count + 1 times,
         or indefinitely when equal to REPEAT_FOREVER (9999)
       maximum: 99999999
       minimum: 0
-      title: Repeat Count
       type: integer
     profile:
       description: Ordered profile steps without the terminating zero pair
       items:
         $ref: '#/$defs/ProfileStep'
       maxItems: 127
-      title: Profile
       type: array
   required:
   - current_max_ma

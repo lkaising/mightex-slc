@@ -14,12 +14,10 @@ request:
         current_ma:
           description: Step current in milliamps
           minimum: 0
-          title: Current Ma
           type: number
         time_us:
           description: Step duration in whole microseconds
           minimum: 0
-          title: Time Us
           type: integer
       required:
       - current_ma
@@ -42,17 +40,14 @@ request:
   properties:
     device_id:
       description: Handle returned by open_device
-      title: Device Id
       type: string
     channel:
       description: One-based channel number
       minimum: 1
-      title: Channel
       type: integer
     current_max_ma:
       description: Maximum current in milliamps
       minimum: 0
-      title: Current Max Ma
       type: number
     polarity:
       $ref: '#/$defs/TriggerPolarity'
@@ -64,7 +59,6 @@ request:
       items:
         $ref: '#/$defs/ProfileStep'
       maxItems: 127
-      title: Profile
       type: array
   required:
   - device_id
@@ -82,7 +76,6 @@ reply:
         status:
           const: ok
           default: ok
-          title: Status
           type: string
       title: ConfigureTriggerOk
       type: object
@@ -95,14 +88,12 @@ reply:
         status:
           const: error
           default: error
-          title: Status
           type: string
         error_type:
           $ref: '#/$defs/ErrorType'
           description: Library exception name to raise
         message:
           description: Human-readable error description
-          title: Message
           type: string
         code:
           anyOf:
@@ -110,7 +101,6 @@ reply:
           - type: 'null'
           default: null
           description: Device-reported error code, present only for DeviceCommandError
-          title: Code
       required:
       - error_type
       - message

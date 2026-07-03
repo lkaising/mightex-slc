@@ -6,19 +6,15 @@ DeviceInfo:
   properties:
     device_type:
       description: Module or device type string
-      title: Device Type
       type: string
     firmware_version:
       description: Firmware version string
-      title: Firmware Version
       type: string
     serial_number:
       description: Serial number string
-      title: Serial Number
       type: string
     raw:
       description: Full information line exactly as reported
-      title: Raw
       type: string
   required:
   - device_type

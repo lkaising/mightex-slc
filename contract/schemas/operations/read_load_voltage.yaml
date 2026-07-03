@@ -10,12 +10,10 @@ request:
   properties:
     device_id:
       description: Handle returned by open_device
-      title: Device Id
       type: string
     channel:
       description: One-based channel number
       minimum: 1
-      title: Channel
       type: integer
   required:
   - device_id
@@ -33,14 +31,12 @@ reply:
         status:
           const: error
           default: error
-          title: Status
           type: string
         error_type:
           $ref: '#/$defs/ErrorType'
           description: Library exception name to raise
         message:
           description: Human-readable error description
-          title: Message
           type: string
         code:
           anyOf:
@@ -48,7 +44,6 @@ reply:
           - type: 'null'
           default: null
           description: Device-reported error code, present only for DeviceCommandError
-          title: Code
       required:
       - error_type
       - message
@@ -77,11 +72,9 @@ reply:
         status:
           const: ok
           default: ok
-          title: Status
           type: string
         result:
           description: Present load voltage in millivolts
-          title: Result
           type: integer
       required:
       - result

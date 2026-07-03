@@ -20,7 +20,6 @@ reply:
         index:
           description: Zero-based device index for open_device
           minimum: 0
-          title: Index
           type: integer
         serial_number:
           anyOf:
@@ -28,7 +27,6 @@ reply:
           - type: 'null'
           default: null
           description: Serial number if readable before opening, else None
-          title: Serial Number
         module_type:
           anyOf:
           - $ref: '#/$defs/ModuleType'
@@ -42,7 +40,6 @@ reply:
           - type: 'null'
           default: null
           description: Channel count if readable before opening, else None
-          title: Channel Count
       required:
       - index
       title: DeviceDescriptor
@@ -54,13 +51,11 @@ reply:
         status:
           const: ok
           default: ok
-          title: Status
           type: string
         result:
           description: One descriptor per connected controller, in index order
           items:
             $ref: '#/$defs/DeviceDescriptor'
-          title: Result
           type: array
       required:
       - result
@@ -75,14 +70,12 @@ reply:
         status:
           const: error
           default: error
-          title: Status
           type: string
         error_type:
           $ref: '#/$defs/ErrorType'
           description: Library exception name to raise
         message:
           description: Human-readable error description
-          title: Message
           type: string
         code:
           anyOf:
@@ -90,7 +83,6 @@ reply:
           - type: 'null'
           default: null
           description: Device-reported error code, present only for DeviceCommandError
-          title: Code
       required:
       - error_type
       - message

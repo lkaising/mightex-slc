@@ -7,12 +7,10 @@ NormalParameters:
     current_max_ma:
       description: Maximum current in milliamps
       minimum: 0
-      title: Current Max Ma
       type: number
     current_set_ma:
       description: Working current in milliamps
       minimum: 0
-      title: Current Set Ma
       type: number
   required:
   - current_max_ma

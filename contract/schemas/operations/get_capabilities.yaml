@@ -7,7 +7,6 @@ request:
   properties:
     device_id:
       description: Handle returned by open_device
-      title: Device Id
       type: string
   required:
   - device_id
@@ -27,7 +26,6 @@ reply:
         channel_count:
           description: Number of output channels
           minimum: 1
-          title: Channel Count
           type: integer
         current_resolution_ma:
           description: Current step size in milliamps. The documents state 1.0 for
@@ -35,7 +33,6 @@ reply:
             XV modules. The documents do not state a resolution for QA, so any QA
             value is a server-side library convention, not a device fact.
           exclusiveMinimum: 0
-          title: Current Resolution Ma
           type: number
         max_profile_steps:
           description: Maximum usable profile steps, not counting the terminating
@@ -43,24 +40,19 @@ reply:
             as 2 for modules they call limited.
           maximum: 127
           minimum: 2
-          title: Max Profile Steps
           type: integer
         supports_trigger_mode:
           description: Whether this module supports TRIGGER mode; False for MA and
             CA
-          title: Supports Trigger Mode
           type: boolean
         supports_load_voltage:
           description: Whether this module supports load voltage read-back
-          title: Supports Load Voltage
           type: boolean
         supports_fan_control:
           description: Whether this module exposes fan control
-          title: Supports Fan Control
           type: boolean
         requires_initialization:
           description: Whether this module must be prepared with initialize() first
-          title: Requires Initialization
           type: boolean
       required:
       - module_type
@@ -82,14 +74,12 @@ reply:
         status:
           const: error
           default: error
-          title: Status
           type: string
         error_type:
           $ref: '#/$defs/ErrorType'
           description: Library exception name to raise
         message:
           description: Human-readable error description
-          title: Message
           type: string
         code:
           anyOf:
@@ -97,7 +87,6 @@ reply:
           - type: 'null'
           default: null
           description: Device-reported error code, present only for DeviceCommandError
-          title: Code
       required:
       - error_type
       - message
@@ -126,7 +115,6 @@ reply:
         status:
           const: ok
           default: ok
-          title: Status
           type: string
         result:
           $ref: '#/$defs/ControllerCapabilities'

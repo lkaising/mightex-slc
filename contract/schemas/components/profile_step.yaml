@@ -10,12 +10,10 @@ ProfileStep:
     current_ma:
       description: Step current in milliamps
       minimum: 0
-      title: Current Ma
       type: number
     time_us:
       description: Step duration in whole microseconds
       minimum: 0
-      title: Time Us
       type: integer
   required:
   - current_ma

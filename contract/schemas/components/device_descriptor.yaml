@@ -34,7 +34,6 @@ DeviceDescriptor:
     index:
       description: Zero-based device index for open_device
       minimum: 0
-      title: Index
       type: integer
     serial_number:
       anyOf:
@@ -42,7 +41,6 @@ DeviceDescriptor:
       - type: 'null'
       default: null
       description: Serial number if readable before opening, else None
-      title: Serial Number
     module_type:
       anyOf:
       - $ref: '#/$defs/ModuleType'
@@ -56,7 +54,6 @@ DeviceDescriptor:
       - type: 'null'
       default: null
       description: Channel count if readable before opening, else None
-      title: Channel Count
   required:
   - index
   title: DeviceDescriptor

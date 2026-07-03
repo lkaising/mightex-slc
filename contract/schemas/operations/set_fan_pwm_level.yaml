@@ -7,13 +7,11 @@ request:
   properties:
     device_id:
       description: Handle returned by open_device
-      title: Device Id
       type: string
     level:
       description: Fan drive level, 0 fully off to 10 fully on, in 10 percent steps
       maximum: 10
       minimum: 0
-      title: Level
       type: integer
   required:
   - device_id
@@ -31,14 +29,12 @@ reply:
         status:
           const: error
           default: error
-          title: Status
           type: string
         error_type:
           $ref: '#/$defs/ErrorType'
           description: Library exception name to raise
         message:
           description: Human-readable error description
-          title: Message
           type: string
         code:
           anyOf:
@@ -46,7 +42,6 @@ reply:
           - type: 'null'
           default: null
           description: Device-reported error code, present only for DeviceCommandError
-          title: Code
       required:
       - error_type
       - message
@@ -75,7 +70,6 @@ reply:
         status:
           const: ok
           default: ok
-          title: Status
           type: string
       title: SetFanPwmLevelOk
       type: object

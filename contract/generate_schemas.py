@@ -39,6 +39,7 @@ from typing import Any  # noqa: E402
 
 import yaml  # noqa: E402
 from pydantic import TypeAdapter  # noqa: E402
+from pydantic.json_schema import GenerateJsonSchema  # noqa: E402
 
 from mightex_contract import (  # noqa: E402
     ChannelState,
@@ -65,14 +66,25 @@ HEADER = (
 SCHEMAS_DIR = Path(__file__).resolve().parent / "schemas"
 
 
+class _NoFieldTitles(GenerateJsonSchema):
+    """Suppress auto-generated field titles; keep model/enum (schema-level) titles."""
+
+    def field_title_should_be_set(self, schema) -> bool:
+        return False
+
+
 def _model_schema(model: Any) -> dict:
-    """JSON Schema for a Pydantic BaseModel subclass."""
-    return model.model_json_schema()
+    """JSON Schema for a Pydantic BaseModel subclass.
+
+    Field titles are intentionally suppressed (see _NoFieldTitles); model/enum
+    schema-level titles are kept.
+    """
+    return model.model_json_schema(schema_generator=_NoFieldTitles)
 
 
 def _adapter_schema(tp: Any) -> dict:
     """JSON Schema for a type that is not a BaseModel (union, alias, or enum)."""
-    return TypeAdapter(tp).json_schema()
+    return TypeAdapter(tp).json_schema(schema_generator=_NoFieldTitles)
 
 
 # PyYAML can only encode an embedded newline in a quoted scalar via a blank

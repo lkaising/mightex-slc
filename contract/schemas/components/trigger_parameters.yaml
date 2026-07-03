@@ -13,12 +13,10 @@ TriggerParameters:
         current_ma:
           description: Step current in milliamps
           minimum: 0
-          title: Current Ma
           type: number
         time_us:
           description: Step duration in whole microseconds
           minimum: 0
-          title: Time Us
           type: integer
       required:
       - current_ma
@@ -38,7 +36,6 @@ TriggerParameters:
     current_max_ma:
       description: Maximum current in milliamps
       minimum: 0
-      title: Current Max Ma
       type: number
     polarity:
       $ref: '#/$defs/TriggerPolarity'
@@ -48,7 +45,6 @@ TriggerParameters:
       items:
         $ref: '#/$defs/ProfileStep'
       maxItems: 127
-      title: Profile
       type: array
   required:
   - current_max_ma
