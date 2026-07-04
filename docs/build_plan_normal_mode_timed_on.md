@@ -1,0 +1,493 @@
+# Slice Build Plan: `normal_mode_timed_on`
+
+Status: canonical working plan as of 2026-07-04. This is the corrected edition
+of `~/Downloads/slice_build_plan_normal_mode_timed_on.md`, which it supersedes.
+The plan takes the project from its current skeleton state (files exist,
+headers only, no bodies) to a running implementation where
+`examples/normal_mode_timed_on.py` executes end to end against the fake
+transport with no hardware attached.
+
+Corrections from the draft, in one place (details inline below):
+
+- The draft assumed contract files had already been "ported" and needed import
+  fixes. **Nothing has been ported.** The porting source is the abandoned
+  contract branch at `~/Developer/Projects/mightex-slc` — its
+  `contract/mightex_contract/` package is complete and is the reference for
+  Phase 1.
+- The draft said to "confirm `pyproject.toml` declares the src/ layout".
+  **`pyproject.toml` is a 0-byte file** — it must be authored from scratch.
+- The draft said to update the schema generator's imports and output path.
+  **`scripts/generate_schemas.py` is a header-only stub** — it must be written,
+  using the contract branch's working `contract/generate_schemas.py` as the
+  reference.
+- The "staleness check" the draft says to confirm **does not exist anywhere**
+  and never did — it must be written as a test.
+- The §11 open decision on `close_device.py`'s shape is **resolved**: the
+  contract-branch file follows the uniform Request/Ok/Reply pattern, as hoped.
+- Wire enum values are now pinned by three independent sources (vendor docs,
+  hardware, contract branch): `OperatingMode` DISABLE=0 / NORMAL=1 / STROBE=2 /
+  TRIGGER=3, serialized as plain ints.
+
+Scope discipline is the point of this slice. Everything below builds the
+smallest complete vertical that proves the architecture, and leaves every
+out-of-scope operation dormant rather than half-built.
+
+---
+
+## 1. The goal, stated as an acceptance condition
+
+The slice is done when this runs to completion, with no hardware, no leaked
+exception, and the fake device left in the expected end state:
+
+```
+python examples/normal_mode_timed_on.py   # resolves mightex_slc from an editable install
+```
+
+The example (at `~/Developer/Projects/mightex/examples/normal_mode_timed_on.py`,
+already fully written — the one complete file in the project) exercises exactly
+this call sequence, and nothing else:
+
+1. `enumerate_devices()` returns at least one `DeviceDescriptor`.
+2. `open_device(index)` returns a `Controller` usable as a context manager.
+3. `controller.requires_initialization` is read; if true, `controller.initialize()`.
+4. `controller.channel(1)` returns a `Channel`.
+5. `channel.configure_normal(current_max_ma, current_set_ma)`.
+6. `channel.set_active_mode(OperatingMode.NORMAL)`.
+7. host-side `time.sleep(...)`.
+8. `channel.set_active_mode(OperatingMode.DISABLE)` in a `finally`.
+9. context exit calls `controller.close()`.
+
+If those nine steps pass through the full stack and return correctly, the seam
+is proven and the rest of the library is a matter of repeating the pattern.
+
+---
+
+## 2. Current state, and the gaps to close first
+
+What exists: the `src/mightex_slc/` package tree is laid out across `client`,
+`contract`, `server`, and `transport`, plus `scripts/generate_schemas.py`,
+`schemas/`, and `tests/`. Every file carries a header; client/server/transport
+files also carry intent docstrings. **No file contains executable code.**
+
+Five gaps to close before implementation, or they surface as confusing errors
+mid-build:
+
+- **`pyproject.toml` is empty (0 bytes) and must be authored.** Build backend,
+  project name, `pydantic` dependency, dev dependencies (`pytest`, `ruff`,
+  `pyyaml` for the generator), and the `src/` layout declaration so an editable
+  install finds `mightex_slc`. No package manager is chosen anywhere either
+  (no lock file exists) — decide in Phase 0. Note `.python-version` names a
+  pyenv virtualenv (`mightex-slc`), not a Python version.
+- **No top-level `mightex_slc/__init__.py` exists.** The example imports
+  `from mightex_slc import OperatingMode, enumerate_devices, open_device`, so
+  the package root must assemble and re-export the public surface. Create it.
+- **The contract models must be ported from the contract branch.** Source:
+  `~/Developer/Projects/mightex-slc/contract/mightex_contract/` (complete,
+  18 operations, 13 components — take only the slice subset in §5). Those files
+  import `from mightex_contract...`; rewrite every intra-contract import as a
+  relative import (`from ..base import ContractModel`), which survives future
+  renames.
+- **The schema generator must be written.** Reference implementation:
+  `~/Developer/Projects/mightex-slc/contract/generate_schemas.py` (complete and
+  working — field-title suppression, one-line descriptions, deterministic YAML,
+  generated-file headers). The new one lives at `scripts/generate_schemas.py`
+  (outside `src/`, correctly out of the shipped wheel), covers only the slice's
+  models, writes to the top-level `schemas/`, and stamps the new path in its
+  headers. The staleness check (regenerate-and-diff) must be written as a test;
+  the old branch never had one.
+- **The example lives outside the project** (`mightex/examples/`, a sibling of
+  `mightex-slc/`). Running it requires the package installed editable
+  (`pip install -e mightex-slc`).
+
+---
+
+## 3. Guiding principles for this slice
+
+**Tracer bullet before breadth.** Build one operation (`enumerate_devices`) all
+the way through every layer and get a green round-trip test before writing the
+other five. This front-loads the seam risk and turns the remaining operations
+into mechanical repetition of a known-good shape.
+
+**Contract is upstream; build downstream from it.** The client and server both
+import contract models. Writing either against types that do not yet exist
+forces mirroring or comment-and-forget, the exact failure the reorg was meant
+to kill. The contract lands first.
+
+**Fake only.** The entire slice runs against `transport/fake`. The `rs232`
+backend and its codec stay empty. (When rs232's turn comes, its design is
+already settled — `architecture.md` §6.)
+
+**Honor the serialize-and-validate seam even in-process.** The client builds a
+Pydantic request model, dumps it with `model_dump(mode="json")` to a plain
+dict, and hands that dict to the server, which reconstructs and validates the
+matching model. Keep this even though everything is one process for now. It is
+what makes a later socket or daemon a wiring change rather than a contract
+change.
+
+**Leave dormant code dormant.** Files for out-of-scope operations and
+components stay empty. Do not stub them to silence a linter. An empty file with
+a header is honest; a fake stub is a future reconciliation you will forget.
+(Corollary: the skeleton's docstrings describe the *full* library — strobe,
+trigger, fan, store. Ignore the out-of-scope parts; only the slice subset gets
+bodies.)
+
+---
+
+## 4. Dependency map
+
+Build order follows the arrows, from the thing that depends on nothing to the
+thing that depends on everything.
+
+```
+contract/           depends on nothing (pure models)
+   ▲
+transport/base      the interface the server drives
+   ▲
+transport/fake      in-memory device, implements the interface
+   ▲
+server/             owns sessions + impl, validates with contract, drives transport
+   ▲
+client/             builds contract requests, calls server, parses replies
+   ▲
+mightex_slc/__init__  assembles the public surface the example imports
+```
+
+The client never imports the server's classes directly; it talks to the server
+through a single in-process entry point (the backend binding in section 8).
+That keeps the seam a real boundary you can later replace.
+
+---
+
+## 5. Scope: in and out
+
+### In scope (the six operations)
+
+| Operation | Why the slice needs it |
+|---|---|
+| `enumerate_devices` | step 1, and the tracer bullet |
+| `open_device` | step 2, establishes the `device_id` and session entry |
+| `initialize` | step 3, exercised when the fake reports `requires_initialization` |
+| `configure_normal` | step 5 |
+| `set_active_mode` | steps 6 and 8 |
+| `close_device` | step 9 |
+
+### In scope (the six components + two bases)
+
+`error`, `error_type`, `module_type`, `operating_mode`, `device_descriptor`,
+`controller_capabilities`; plus `contract/base.py` (`ContractModel`) and
+`contract/operations/base.py` (`DeviceRequest`, `ChannelRequest`).
+
+### Explicitly out of scope
+
+- Every other operation: `configure_strobe`, `configure_trigger`,
+  `set_normal_current`, `get_active_mode`, `read_parameters`,
+  `read_load_voltage`, `store_settings`, `restore_factory_defaults`,
+  `soft_reset`, `set_fan_pwm_level`, `device_info`, and the standalone
+  `get_capabilities` (open already returns capabilities). These exist on the
+  contract branch; do not port them.
+- Components reachable only through those: `normal_parameters` (read-path only,
+  reached through the contract branch's `ChannelState`), `strobe_parameters`,
+  `trigger_parameters`, `trigger_polarity`, `channel_state`, `device_info`,
+  `profile`, and `constants.py` (`REPEAT_FOREVER` is strobe-only).
+- The `rs232` transport and codec.
+- The single-owner daemon or socket (the deferred concurrency fix).
+- Persistence to non-volatile memory.
+
+A sanity check, now **confirmed against the contract branch**: its
+`ConfigureNormalRequest` inlines `current_max_ma` and `current_set_ma` as flat
+fields (with a `current_set_ma <= current_max_ma` model validator) and does not
+reference `NormalParameters` — so the normal-mode slice does not pull in the
+normal-parameters component. Correct, not an omission.
+
+---
+
+## 6. The build plan, phase by phase
+
+### Phase 0: prep and decisions (no bodies yet)
+
+Close the five gaps in section 2. Make the decisions in section 11 that block a
+clean start (at minimum: package manager and build backend, relative imports,
+create the top-level `__init__.py`, decide the fake's
+`requires_initialization` value). `normal_parameters.py` is already a
+header-only stub — leave it empty; that satisfies "the contract tree matches
+the slice's real import closure."
+
+### Phase 1: contract foundation
+
+Port the six operations, six components, and two bases from the contract
+branch (`~/Developer/Projects/mightex-slc/contract/mightex_contract/`). Fix
+every import to relative form. Write the three contract `__init__.py` files to
+re-export **only what is present** — the contract branch's versions re-export
+all 18 operations (its `operations/__init__.py` is 175 lines); copying them
+verbatim is the single most likely first-import failure.
+
+Then write `scripts/generate_schemas.py` (reference: the branch's working
+generator), generate the slice's schemas into `schemas/`, and add the
+staleness test (regenerate, diff, fail on drift). Doing this now locks the
+contract shape before anything is built on top of it.
+
+Gate to pass before moving on: `import mightex_slc.contract` succeeds; a valid
+request model for each of the six operations constructs, dumps to JSON, and
+re-validates; an invalid one is rejected (see Phase 6 for the cases). This is a
+pure-contract checkpoint with no transport, server, or client in the picture.
+
+### Phase 2: transport seam and fake
+
+Define `transport/base.py` as the interface the server drives: enumerate
+present devices, open one by index (returning a handle and its capabilities),
+issue a per-channel or per-device command, and close a handle. Keep it small;
+it only needs to carry the six operations of this slice, and it is allowed to
+grow later without the contract moving.
+
+Implement `transport/fake/fake_transport.py` as an in-memory device per
+`architecture.md` §5: one fake controller with a module family, a channel
+count of at least one, a current resolution, and per-channel state (active
+mode, stored normal max and set). It accepts `initialize`, `configure_normal`,
+and `set_active_mode` by mutating that state, and reports capabilities on
+open. Its semantics — configure stores but does not emit; only
+`set_active_mode` changes output — are the device's real semantics
+(`device_and_protocol.md` §7), not conveniences.
+
+### Phase 3: tracer bullet, `enumerate_devices` end to end
+
+Wire the thinnest possible full path for one operation and get it green:
+
+client `enumerate_devices()` builds `EnumerateDevicesRequest`, dumps it, and
+calls the server entry point; the server validates, routes to a handler, asks
+the fake transport for present devices, and returns `EnumerateDevicesOk` with
+the descriptors; the client parses the reply and returns the descriptor list.
+
+Write one integration test that calls the client function and asserts it
+returns a non-empty descriptor list from the fake. When this passes, the seam
+mechanics are proven: model build, JSON dump, dispatch, validate, route,
+transport call, reply model, parse. Everything after this is repetition.
+
+`enumerate_devices` is deliberately first because it carries no `device_id`
+and no channel, so it proves the seam without also needing the session and the
+proxy layer.
+
+### Phase 4: fan out the remaining five operations
+
+Following the proven path, add handlers and the fake behavior for
+`open_device`, `initialize`, `configure_normal`, `set_active_mode`, and
+`close_device`. `open_device` is the one that introduces the session: on open,
+the server creates a live handle, registers it under a new `device_id`, and
+returns that id plus the capabilities. Every later call carries the
+`device_id`, and the server looks up the live handle by it. `close_device`
+removes it from the session.
+
+Gate to pass: each of the six operations round-trips against the fake in
+isolation. No public proxy layer is required yet; these can be driven directly
+through `link` in tests.
+
+### Phase 5: public surface
+
+Now add the ergonomic layer the example actually calls:
+
+- `client/errors.py`: the public exception hierarchy (`architecture.md` §4).
+- `client/types.py`: re-export `OperatingMode`, `DeviceDescriptor`,
+  `ModuleType`, `ControllerCapabilities` from the contract (imported, not
+  mirrored).
+- `client/controller.py`: the `Controller` proxy holding `device_id` **and the
+  capabilities from open** (its skeleton docstring saying "a device_id and
+  nothing else" is superseded — `requires_initialization` must answer without
+  a round trip), with `requires_initialization`, `initialize`, `channel`,
+  `close`, `is_closed`, and the context-manager methods. House
+  `enumerate_devices` and `open_device` here (or a small `client/discovery.py`),
+  since `open_device` constructs a `Controller`.
+- `client/channel.py`: the `Channel` proxy holding `device_id` and a one-based
+  channel number, with `configure_normal`, `set_active_mode`, and `number`.
+  `channel(n)` is a pure client-side accessor that builds this proxy; it never
+  crosses the seam.
+- `mightex_slc/__init__.py`: re-export `enumerate_devices`, `open_device`,
+  `Controller`, `Channel`, `OperatingMode`, `DeviceDescriptor`, and the
+  exception classes.
+
+### Phase 6: tests and run the example
+
+Contract model tests (`tests/contract/`): for each of the six operations, a
+valid request round-trips and an invalid one is rejected. Concrete invalid
+cases worth covering: `configure_normal` with `current_set_ma` above
+`current_max_ma`, a negative current, a channel number below one, and a
+missing `device_id`. Reply models parse both the ok and error variants.
+
+Integration test (`tests/integration/`): drive the full nine-step example
+sequence through the public client API against the fake, then assert the
+fake's end state (the channel's stored normal params match what was set, and
+the active mode is `DISABLE` after the `finally`). Add at least one error-path
+assertion, for example opening a bad index raises `DeviceNotFoundError`.
+
+Finally, run `examples/normal_mode_timed_on.py` against the editable install
+and confirm it completes cleanly.
+
+---
+
+## 7. File-by-file responsibilities for the slice
+
+Contract (port from the contract branch, fix imports, trim re-exports):
+
+- `contract/base.py`: `ContractModel`, the frozen base with extra fields
+  forbidden.
+- `contract/operations/base.py`: `DeviceRequest` (adds `device_id`),
+  `ChannelRequest` (adds `device_id` and one-based `channel`).
+- `contract/components/error.py`: the `Error` reply envelope shared by every
+  operation (with the code-only-for-DeviceCommandError validator).
+- `contract/components/error_type.py`: `ErrorType`, the enum of exception
+  names the client maps a reply back onto.
+- `contract/components/module_type.py`: `ModuleType`, the device's own family
+  numbering (AA=0 … QA=12 — load-bearing, never renumber).
+- `contract/components/operating_mode.py`: `OperatingMode` (IntEnum,
+  DISABLE=0, NORMAL=1, STROBE=2, TRIGGER=3 — device codes).
+- `contract/components/device_descriptor.py`: `DeviceDescriptor`, the
+  discovery identity (optional fields stay optional: only a count is knowable
+  before opening).
+- `contract/components/controller_capabilities.py`: `ControllerCapabilities`,
+  the open-reply payload where `requires_initialization` lives.
+- `contract/operations/{enumerate_devices, open_device, initialize,
+  configure_normal, set_active_mode, close_device}.py`: request and reply
+  models, one file per operation. All six confirmed complete on the contract
+  branch, uniform `<Op>Request` / `<Op>Ok` / `<Op>Reply` (discriminated on
+  `status`) pattern.
+
+Transport:
+
+- `transport/base.py`: the interface the server drives.
+- `transport/fake/fake_transport.py`: in-memory device with per-channel state.
+
+Server:
+
+- `server/session.py`: registry mapping `device_id` to a live device handle.
+- `server/impl/controller.py`: device-side controller model (open, initialize,
+  capabilities, channel access, close), driving the transport.
+- `server/impl/channel.py`: device-side channel logic for `configure_normal`
+  and `set_active_mode`.
+- `server/dispatch.py`: validate an incoming payload with the matching request
+  model, route by operation name to a handler.
+- `server/api.py`: the in-process entry point the client calls; owns dispatch,
+  session, and the transport binding.
+- `server/errors.py`: translate an execution failure into an `Error` reply and
+  choose its `error_type`.
+
+Client:
+
+- `client/errors.py`: `MightexLEDError` and its subtypes.
+- `client/types.py`: re-exports of the contract enums and shapes.
+- `client/link.py`: build request model, dump, call the server entry point,
+  parse the reply, and on an error reply map `error_type` to the exception to
+  raise.
+- `client/controller.py`: `Controller` proxy plus the discovery functions.
+- `client/channel.py`: `Channel` proxy.
+- `mightex_slc/__init__.py`: the assembled public surface.
+
+---
+
+## 8. The in-process wiring (the backend binding)
+
+This is the piece most easily hand-waved, so it gets its own section. The
+question it answers: how does `enumerate_devices()`, a module-level function
+with no `device_id` yet, reach the server and the fake transport?
+
+For the slice, bind a single in-process server, itself bound to the fake
+transport, and give the client `link` a reference to it. The simplest honest
+form is a default backend that `link` calls, constructed once as an in-process
+server over the fake transport. `enumerate_devices()` then flows as
+`link.call("enumerate_devices", {})` into that server, which drives the fake
+and returns the reply.
+
+Keep this binding behind one seam so the later swap is a wiring change only.
+Nothing in the contract or the client proxies should know whether the backend
+is an in-process server over a fake, an in-process server over rs232, or a
+socket to a daemon. When rs232 arrives, only the transport the server is bound
+to changes. (Make sure tests can construct a fresh server-over-fake rather
+than sharing the default singleton — the exact mechanism is an open decision
+in §11.)
+
+---
+
+## 9. Data flow for one operation
+
+Concrete trace of `channel.set_active_mode(OperatingMode.NORMAL)`, which is
+the representative shape every channel operation follows:
+
+1. User calls `channel.set_active_mode(OperatingMode.NORMAL)`.
+2. The `Channel` proxy asks `link` to run `set_active_mode` with its
+   `device_id`, its channel number, and the mode.
+3. `link` builds `SetActiveModeRequest(device_id=..., channel=1, mode=NORMAL)`.
+   Any argument-level validation fires here, client-side, at model
+   construction.
+4. `link` serializes it: `request.model_dump(mode="json")` gives
+   `{"device_id": "...", "channel": 1, "mode": 1}`.
+5. `link` calls the server entry point with the operation name and that dict.
+6. `server/dispatch.py` reconstructs `SetActiveModeRequest(**payload)`, which
+   re-validates as the trust boundary, and routes to the handler.
+7. The handler looks up the live device in `session` by `device_id`.
+8. The handler calls `impl/channel` to set the active mode, which drives the
+   fake transport and mutates its state.
+9. The handler returns `SetActiveModeOk()`, serialized to `{"status": "ok"}`.
+10. `link` parses the reply; status is ok, so it returns success (here,
+    `None`).
+
+On failure, the handler returns an `Error` reply carrying `error_type`,
+`message`, and, for a `DeviceCommandError`, `code`. `link` reads `error_type`
+and raises the matching exception in the user's process.
+
+---
+
+## 10. Where errors surface
+
+Three distinct places, worth keeping straight:
+
+- **Client-side, at request construction.** Invalid arguments (set above max,
+  a negative current, a bad channel) raise `ValueError` when `link` builds the
+  request model, before anything crosses the seam. The cross-field rule in
+  `ConfigureNormalRequest` is one of these.
+- **Server-side, at re-validation.** `dispatch` reconstructs the model as a
+  trust boundary. In-process with a well-behaved client this rarely fires, but
+  it is the reason a future untrusted caller cannot bypass the contract.
+- **Device or execution failures.** These come back as an `Error` reply.
+  `link` maps `error_type` to the exception class. A bad open index becomes
+  `DeviceNotFoundError`; use of a `device_id` the session does not know
+  becomes `ControllerClosedError`.
+
+---
+
+## 11. Decisions
+
+Resolved (previously open in the draft):
+
+- **`close_device.py` shape** — confirmed on the contract branch: uniform
+  pattern, `CloseDeviceRequest(DeviceRequest)` plus `CloseDeviceOk`, no new
+  components. The component closure does not grow.
+- **`normal_parameters.py`** — already a header-only stub; leave it empty.
+- **Intra-package imports** — relative imports throughout, decided.
+- **Schema generation timing** — Phase 1, decided.
+- **Controller state** — caches capabilities from open (see Phase 5).
+- **Wire enum values** — device integer codes, serialize as ints, pinned.
+
+Still open, resolve during Phase 0:
+
+- **Package manager and build backend** for the authored `pyproject.toml`
+  (nothing is installed or installable today; no lock file exists).
+- **Fake `requires_initialization`.** Recommend `True`, so the example's
+  `initialize()` branch is exercised by the integration run rather than only
+  unit-tested. The tradeoff is a slightly less minimal fake.
+- **Home for `enumerate_devices` and `open_device`.** Recommend
+  `client/controller.py` or a small `client/discovery.py`, since `open_device`
+  builds a `Controller`.
+- **Test isolation for the backend binding** — how tests get a fresh
+  server-over-fake instead of the default singleton (fixture constructing the
+  server directly, an injection point on `link`, or both).
+
+---
+
+## 12. What this slice sets up
+
+When it is green, the architecture is proven on a real path, and the remaining
+work is additive rather than structural. Adding an operation later means one
+contract operation file, one handler, one bit of fake behavior, and one proxy
+method, following the shape this slice establishes. Swapping the fake for
+rs232 means implementing `transport/rs232` against the same `transport/base`
+interface and rebinding the server, with the contract and the client untouched
+— and the rs232 design is already settled by hardware-proven evidence
+(`architecture.md` §6, `device_and_protocol.md` §9). Neither of those disturbs
+anything built here, which is the signal that the slice was scoped correctly.
