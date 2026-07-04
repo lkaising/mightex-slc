@@ -66,9 +66,10 @@ mightex_slc/__init__ the assembled public surface
   envelope.
 - **`client/`** — `link.py` is the seam client-side: build model →
   `model_dump(mode="json")` → call server entry point → parse reply → map
-  `error_type` to an exception. `controller.py`/`channel.py` are thin proxies;
-  `types.py` re-exports contract shapes; `errors.py` holds the exception
-  hierarchy.
+  `error_type` to an exception. `discovery.py` holds the module-level
+  `enumerate_devices`/`open_device` functions; `controller.py`/`channel.py`
+  are thin proxies; `types.py` re-exports contract shapes; `errors.py` holds
+  the exception hierarchy.
 
 The client never imports server classes; it reaches the server only through
 the one backend binding inside `link`. That keeps the seam a real boundary.

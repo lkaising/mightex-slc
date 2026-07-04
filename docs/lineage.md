@@ -121,8 +121,9 @@ against no downstream consumer. The slice method is the corrective.
 contract models from `contract/mightex_contract/`, and the schema generator
 is written against `contract/generate_schemas.py` as reference. Its two
 `temp_*` docs are superseded by this folder (their device facts are merged;
-their open questions are carried in `device_and_protocol.md` §10 and the build
-plan §11). Nothing else in the branch should be opened again.
+their device-facing open questions are carried in `device_and_protocol.md`
+§10; their design-facing ones are settled in the build plan's decision record,
+§11). Nothing else in the branch should be opened again.
 
 ## 3. The plan draft in Downloads
 
