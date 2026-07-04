@@ -72,12 +72,16 @@ files also carry intent docstrings. **No file contains executable code.**
 Five gaps to close before implementation, or they surface as confusing errors
 mid-build:
 
-- **`pyproject.toml` is empty (0 bytes) and must be authored.** Build backend,
-  project name, `pydantic` dependency, dev dependencies (`pytest`, `ruff`,
-  `pyyaml` for the generator), and the `src/` layout declaration so an editable
-  install finds `mightex_slc`. No package manager is chosen anywhere either
-  (no lock file exists) — decide in Phase 0. Note `.python-version` names a
-  pyenv virtualenv (`mightex-slc`), not a Python version.
+- **`pyproject.toml` is empty (0 bytes) and must be authored.** Decided:
+  **Hatchling** is the build backend. Declare the project name, the `pydantic`
+  dependency, a `dev` extra (`pytest`, `ruff`, `pyyaml` for the generator),
+  and the `src/` layout so an editable install finds `mightex_slc`. The
+  baseline workflow is plain pip in a standard environment —
+  `python -m pip install -e ".[dev]"` — portable between pyenv-virtualenv on
+  macOS and a plain `venv` on the eventual Ubuntu hardware machine. uv may be
+  layered on as a personal convenience but is never required, and
+  `.python-version` keeps its pyenv meaning (it names the virtualenv
+  `mightex-slc`, not a Python version).
 - **No top-level `mightex_slc/__init__.py` exists.** The example imports
   `from mightex_slc import OperatingMode, enumerate_devices, open_device`, so
   the package root must assemble and re-export the public surface. Create it.
@@ -97,7 +101,7 @@ mid-build:
   the old branch never had one.
 - **The example lives outside the project** (`mightex/examples/`, a sibling of
   `mightex-slc/`). Running it requires the package installed editable
-  (`pip install -e mightex-slc`).
+  (`python -m pip install -e ".[dev]"` from inside `mightex-slc/`).
 
 ---
 
@@ -203,14 +207,12 @@ normal-parameters component. Correct, not an omission.
 
 ## 6. The build plan, phase by phase
 
-### Phase 0: prep and decisions (no bodies yet)
+### Phase 0: prep (no bodies yet)
 
-Close the five gaps in section 2. Make the decisions in section 11 that block a
-clean start (at minimum: package manager and build backend, relative imports,
-create the top-level `__init__.py`, decide the fake's
-`requires_initialization` value). `normal_parameters.py` is already a
-header-only stub — leave it empty; that satisfies "the contract tree matches
-the slice's real import closure."
+Close the five gaps in section 2, applying the decisions recorded in
+section 11 (all now resolved), and create the top-level `__init__.py` stub.
+`normal_parameters.py` is already a header-only stub — leave it empty; that
+satisfies "the contract tree matches the slice's real import closure."
 
 ### Phase 1: contract foundation
 
@@ -244,7 +246,8 @@ Implement `transport/fake/fake_transport.py` as an in-memory device per
 count of at least one, a current resolution, and per-channel state (active
 mode, stored normal max and set). It accepts `initialize`, `configure_normal`,
 and `set_active_mode` by mutating that state, and reports capabilities on
-open. Its semantics — configure stores but does not emit; only
+open with `requires_initialization=True`, so the acceptance run exercises the
+`initialize()` branch. Its semantics — configure stores but does not emit; only
 `set_active_mode` changes output — are the device's real semantics
 (`device_and_protocol.md` §7), not conveniences.
 
@@ -288,13 +291,15 @@ Now add the ergonomic layer the example actually calls:
 - `client/types.py`: re-export `OperatingMode`, `DeviceDescriptor`,
   `ModuleType`, `ControllerCapabilities` from the contract (imported, not
   mirrored).
+- `client/discovery.py` (a new file — the skeleton does not include it): the
+  module-level `enumerate_devices` and `open_device` functions, kept separate
+  so `controller.py` stays focused on the proxy. `open_device` constructs a
+  `Controller`.
 - `client/controller.py`: the `Controller` proxy holding `device_id` **and the
   capabilities from open** (its skeleton docstring saying "a device_id and
   nothing else" is superseded — `requires_initialization` must answer without
   a round trip), with `requires_initialization`, `initialize`, `channel`,
-  `close`, `is_closed`, and the context-manager methods. House
-  `enumerate_devices` and `open_device` here (or a small `client/discovery.py`),
-  since `open_device` constructs a `Controller`.
+  `close`, `is_closed`, and the context-manager methods.
 - `client/channel.py`: the `Channel` proxy holding `device_id` and a one-based
   channel number, with `configure_normal`, `set_active_mode`, and `number`.
   `channel(n)` is a pure client-side accessor that builds this proxy; it never
@@ -374,8 +379,11 @@ Client:
 - `client/types.py`: re-exports of the contract enums and shapes.
 - `client/link.py`: build request model, dump, call the server entry point,
   parse the reply, and on an error reply map `error_type` to the exception to
-  raise.
-- `client/controller.py`: `Controller` proxy plus the discovery functions.
+  raise. Also owns the default backend binding and its narrow injection point
+  (section 8).
+- `client/discovery.py`: the module-level `enumerate_devices` and
+  `open_device` functions (a new file; the skeleton does not include it).
+- `client/controller.py`: the `Controller` proxy.
 - `client/channel.py`: `Channel` proxy.
 - `mightex_slc/__init__.py`: the assembled public surface.
 
@@ -398,9 +406,15 @@ Keep this binding behind one seam so the later swap is a wiring change only.
 Nothing in the contract or the client proxies should know whether the backend
 is an in-process server over a fake, an in-process server over rs232, or a
 socket to a daemon. When rs232 arrives, only the transport the server is bound
-to changes. (Make sure tests can construct a fresh server-over-fake rather
-than sharing the default singleton — the exact mechanism is an open decision
-in §11.)
+to changes.
+
+Test isolation (decided): `link` creates the default backend lazily on first
+use and exposes one narrow injection/reset point that replaces it (e.g.
+`link.use_backend(...)`). A pytest fixture installs a fresh in-process server
+over a fresh fake for each test and restores the default afterward. That is
+the whole mechanism — no test-only branching in production code. Unit tests of
+server internals need none of this; they can construct a server over a fake
+directly and skip `link` entirely.
 
 ---
 
@@ -464,19 +478,24 @@ Resolved (previously open in the draft):
 - **Controller state** — caches capabilities from open (see Phase 5).
 - **Wire enum values** — device integer codes, serialize as ints, pinned.
 
-Still open, resolve during Phase 0:
+Resolved 2026-07-04 (the former Phase 0 decisions):
 
-- **Package manager and build backend** for the authored `pyproject.toml`
-  (nothing is installed or installable today; no lock file exists).
-- **Fake `requires_initialization`.** Recommend `True`, so the example's
-  `initialize()` branch is exercised by the integration run rather than only
-  unit-tested. The tradeoff is a slightly less minimal fake.
-- **Home for `enumerate_devices` and `open_device`.** Recommend
-  `client/controller.py` or a small `client/discovery.py`, since `open_device`
-  builds a `Controller`.
-- **Test isolation for the backend binding** — how tests get a fresh
-  server-over-fake instead of the default singleton (fixture constructing the
-  server directly, an injection point on `link`, or both).
+- **Build backend and workflow** — Hatchling as the build backend; the
+  baseline workflow is plain pip in a standard environment
+  (`python -m pip install -e ".[dev]"`), portable between pyenv-virtualenv on
+  macOS and a plain `venv` on the eventual Ubuntu hardware machine. uv stays
+  optional, never required; `.python-version` keeps its pyenv meaning.
+- **Fake `requires_initialization`** — `True`, so the acceptance run exercises
+  `initialize()`. Not configurable until a test actually needs a `False`
+  device.
+- **Home for `enumerate_devices` and `open_device`** — a small
+  `client/discovery.py`; `controller.py` stays focused on the `Controller`
+  proxy.
+- **Test isolation for the backend binding** — a narrow injection/reset point
+  in `client/link.py` over a lazily-created default backend; tests install a
+  fresh server-over-fake per test (section 8). No test-only branching.
+
+No open decisions remain.
 
 ---
 
