@@ -26,13 +26,16 @@ The acceptance test for the slice is the one fully-written file in the project:
 `../../examples/normal_mode_timed_on.py`. It doubles as the de facto public API
 specification.
 
-## Current state (verified 2026-07-04)
+## Current state (verified 2026-07-04, post-Phase 0)
 
-The repo is a deliberate, faithful skeleton of the target layout. Every file
-under `src/` is a header-only or docstring-only stub with zero executable code.
-`pyproject.toml` and `README.md` are empty (0 bytes). `tests/`, `schemas/`, and
-this `docs/` folder held only `.gitkeep` placeholders. No phase of the build
-plan has started. That is not a problem — it is Phase 0 waiting to begin.
+The repo is still a deliberate, faithful skeleton of the target layout: every
+file under `src/` is a header-only or docstring-only stub with no executable
+implementation bodies. Phase 0 of the build plan is complete — `pyproject.toml`
+is authored (Hatchling, `src/` layout, editable install verified from a
+sibling examples environment), `src/mightex_slc/__init__.py` exists as a
+header-only package-root stub, and `phase_status.md` in this folder tracks
+per-phase progress. The root `README.md` is still empty. Phase 1 (the contract
+foundation) has not started.
 
 ## The documents
 
@@ -43,6 +46,7 @@ Read in this order:
 | [`architecture.md`](architecture.md) | The vision, the five-layer design, the public API surface, the error model, and the transport-layer design (including the hardware-proven RS232 recipe for when that backend is built). |
 | [`device_and_protocol.md`](device_and_protocol.md) | The consolidated hardware reference: our bench hardware, serial parameters, command framing, the full RS232 command table, mode semantics, limits, and every quirk learned from the real device. |
 | [`build_plan_normal_mode_timed_on.md`](build_plan_normal_mode_timed_on.md) | The corrected, canonical slice build plan. Supersedes the draft in `~/Downloads/slice_build_plan_normal_mode_timed_on.md`, whose stale references it fixes. |
+| [`phase_status.md`](phase_status.md) | The lightweight progress ledger: one row per build-plan phase with its gate, status, and completion note. |
 | [`lineage.md`](lineage.md) | Where everything came from: the two deprecated predecessors, why the contract branch was abandoned, what was salvaged, and what must not be resurrected. |
 | [`vendor/`](vendor/) | The authoritative vendor documentation, converted to markdown: *SDK Description* v1.1.4 (the command set) and *User Manual* v1.3.6 (modes, module matrix, safety). |
 

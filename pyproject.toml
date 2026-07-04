@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mightex-slc"
+version = "0.0.0"
+description = "Python library for Mightex Sirius SLC-series multi-channel LED controllers."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "ruff",
+    "pyyaml",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mightex_slc"]

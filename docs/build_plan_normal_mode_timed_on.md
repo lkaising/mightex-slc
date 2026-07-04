@@ -15,7 +15,7 @@ Corrections from the draft, in one place (details inline below):
   `contract/mightex_contract/` package is complete and is the reference for
   Phase 1.
 - The draft said to "confirm `pyproject.toml` declares the src/ layout".
-  **`pyproject.toml` is a 0-byte file** — it must be authored from scratch.
+  **`pyproject.toml` was a 0-byte file** — Phase 0 authored it from scratch.
 - The draft said to update the schema generator's imports and output path.
   **`scripts/generate_schemas.py` is a header-only stub** — it must be written,
   using the contract branch's working `contract/generate_schemas.py` as the
@@ -69,29 +69,36 @@ What exists: the `src/mightex_slc/` package tree is laid out across `client`,
 `schemas/`, and `tests/`. Every file carries a header; client/server/transport
 files also carry intent docstrings. **No file contains executable code.**
 
-Five gaps to close before implementation, or they surface as confusing errors
-mid-build:
+Five gaps stood between the original skeleton and the full slice. **They were
+never all Phase 0 tasks** — each gap below names the phase that owns it.
+Phase 0 (complete; see `phase_status.md`) closed the packaging and
+package-root items; the contract and schema items remain open for Phase 1:
 
-- **`pyproject.toml` is empty (0 bytes) and must be authored.** Decided:
-  **Hatchling** is the build backend. Declare the project name, the `pydantic`
-  dependency, a `dev` extra (`pytest`, `ruff`, `pyyaml` for the generator),
-  and the `src/` layout so an editable install finds `mightex_slc`. The
+- **`pyproject.toml` was empty (0 bytes) and had to be authored** — closed in
+  Phase 0, as decided: **Hatchling** is the build backend, and the file
+  declares the project name, the `pydantic` dependency, a `dev` extra
+  (`pytest`, `ruff`, `pyyaml` for the generator), and the `src/` layout so an
+  editable install finds `mightex_slc`. The
   baseline workflow is plain pip in a standard environment —
   `python -m pip install -e ".[dev]"` — portable between pyenv-virtualenv on
   macOS and a plain `venv` on the eventual Ubuntu hardware machine. uv may be
   layered on as a personal convenience but is never required, and
   `.python-version` keeps its pyenv meaning (it names the virtualenv
   `mightex-slc`, not a Python version).
-- **No top-level `mightex_slc/__init__.py` exists.** The example imports
+- **No top-level `mightex_slc/__init__.py` existed.** The example imports
   `from mightex_slc import OperatingMode, enumerate_devices, open_device`, so
-  the package root must assemble and re-export the public surface. Create it.
-- **The contract models must be ported from the contract branch.** Source:
+  the package root must eventually assemble and re-export the public surface.
+  Phase 0 created it as a header-only stub so the package is importable; the
+  actual re-exports wait for Phase 5.
+- **The contract models must be ported from the contract branch** (Phase 1).
+  Source:
   `~/Developer/Projects/mightex-slc/contract/mightex_contract/` (complete,
   18 operations, 13 components — take only the slice subset in §5). Those files
   import `from mightex_contract...`; rewrite every intra-contract import as a
   relative import (`from ..base import ContractModel`), which survives future
   renames.
-- **The schema generator must be written.** Reference implementation:
+- **The schema generator must be written** (Phase 1, along with running it and
+  adding the staleness test). Reference implementation:
   `~/Developer/Projects/mightex-slc/contract/generate_schemas.py` (complete and
   working — field-title suppression, one-line descriptions, deterministic YAML,
   generated-file headers). The new one lives at `scripts/generate_schemas.py`
@@ -101,7 +108,8 @@ mid-build:
   the old branch never had one.
 - **The example lives outside the project** (`mightex/examples/`, a sibling of
   `mightex-slc/`). Running it requires the package installed editable
-  (`python -m pip install -e ".[dev]"` from inside `mightex-slc/`).
+  (`python -m pip install -e ".[dev]"` from inside `mightex-slc/`). A standing
+  constraint on how the slice is run, not a task in any phase.
 
 ---
 
@@ -201,18 +209,35 @@ A sanity check, now **confirmed against the contract branch**: its
 `ConfigureNormalRequest` inlines `current_max_ma` and `current_set_ma` as flat
 fields (with a `current_set_ma <= current_max_ma` model validator) and does not
 reference `NormalParameters` — so the normal-mode slice does not pull in the
-normal-parameters component. Correct, not an omission.
+normal-parameters component. Correct, not an omission. Whether that split
+should be kept for this library is a recorded Phase 1 investigation item
+(see §6, Phase 1).
 
 ---
 
 ## 6. The build plan, phase by phase
 
-### Phase 0: prep (no bodies yet)
+### Phase 0: prep (no bodies yet) — complete 2026-07-04
 
-Close the five gaps in section 2, applying the decisions recorded in
-section 11 (all now resolved), and create the top-level `__init__.py` stub.
-`normal_parameters.py` is already a header-only stub — leave it empty; that
-satisfies "the contract tree matches the slice's real import closure."
+Packaging, package root, and docs tracking — nothing else. Done:
+
+- Authored `pyproject.toml`, applying the decisions recorded in section 11
+  (Hatchling, `src/` layout, `pydantic` dependency, `dev` extra, pip-baseline
+  workflow, Python `>=3.11`).
+- Created the top-level `src/mightex_slc/__init__.py` as a header-only stub,
+  so an editable install can import the package. No public re-exports yet —
+  those are Phase 5.
+- Added `docs/phase_status.md`, a lightweight per-phase progress ledger.
+
+The other §2 gaps — contract model porting, the schema generator, generating
+the schemas, and the staleness test — are **Phase 1 work**, not Phase 0.
+`normal_parameters.py` is a header-only stub — leave it empty; that satisfies
+"the contract tree matches the slice's real import closure."
+
+Gate: **passed.** An editable install run from the sibling `examples/`
+environment succeeded, `import mightex_slc` resolved to
+`src/mightex_slc/__init__.py`, and package metadata reported `0.0.0` (details
+in `phase_status.md`).
 
 ### Phase 1: contract foundation
 
@@ -227,6 +252,14 @@ Then write `scripts/generate_schemas.py` (reference: the branch's working
 generator), generate the slice's schemas into `schemas/`, and add the
 staleness test (regenerate, diff, fail on drift). Doing this now locks the
 contract shape before anything is built on top of it.
+
+Phase 1 investigation item (recorded, deliberately unresolved): the contract
+branch keeps `NormalParameters` read-path only (reached through its
+`ChannelState`), and its `ConfigureNormalRequest` inlines `current_max_ma` /
+`current_set_ma` as flat fields (see the §5 sanity check). Decide during the
+port whether that split stands for this library, or whether the
+`configure_normal` contract should reuse or bake in the `NormalParameters`
+shape. Until decided, `normal_parameters.py` stays an empty stub.
 
 Gate to pass before moving on: `import mightex_slc.contract` succeeds; a valid
 request model for each of the six operations constructs, dumps to JSON, and
@@ -472,7 +505,9 @@ Resolved (previously open in the draft):
 - **`close_device.py` shape** — confirmed on the contract branch: uniform
   pattern, `CloseDeviceRequest(DeviceRequest)` plus `CloseDeviceOk`, no new
   components. The component closure does not grow.
-- **`normal_parameters.py`** — already a header-only stub; leave it empty.
+- **`normal_parameters.py`** — already a header-only stub; leave it empty for
+  Phase 0. Whether it stays read-path only or informs the `configure_normal`
+  contract is the open Phase 1 investigation below.
 - **Intra-package imports** — relative imports throughout, decided.
 - **Schema generation timing** — Phase 1, decided.
 - **Controller state** — caches capabilities from open (see Phase 5).
@@ -494,8 +529,14 @@ Resolved 2026-07-04 (the former Phase 0 decisions):
 - **Test isolation for the backend binding** — a narrow injection/reset point
   in `client/link.py` over a lazily-created default backend; tests install a
   fresh server-over-fake per test (section 8). No test-only branching.
+- **Python floor** — `requires-python = ">=3.11"`, set in Phase 0. The active
+  pyenv virtualenv and the verified examples environment both run Python
+  3.11.13; no older interpreter is in the picture.
 
-No open decisions remain.
+One item is deliberately left open, scheduled as a Phase 1 investigation (see
+§6, Phase 1): whether `NormalParameters` remains read-path only, as on the
+contract branch, or whether the `configure_normal` contract should reuse or
+bake in that shape. No other open decisions remain.
 
 ---
 
