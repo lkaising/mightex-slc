@@ -44,6 +44,7 @@ Read in this order:
 | [`device_and_protocol.md`](device_and_protocol.md) | The consolidated hardware reference: our bench hardware, serial parameters, command framing, the full RS232 command table, mode semantics, limits, and every quirk learned from the real device. |
 | [`build_plan_normal_mode_timed_on.md`](build_plan_normal_mode_timed_on.md) | The corrected, canonical slice build plan. Supersedes the draft in `~/Downloads/slice_build_plan_normal_mode_timed_on.md`, whose stale references it fixes. |
 | [`lineage.md`](lineage.md) | Where everything came from: the two deprecated predecessors, why the contract branch was abandoned, what was salvaged, and what must not be resurrected. |
+| [`vendor/`](vendor/) | The authoritative vendor documentation, converted to markdown: *SDK Description* v1.1.4 (the command set) and *User Manual* v1.3.6 (modes, module matrix, safety). |
 
 ## Provenance convention
 
@@ -66,4 +67,4 @@ unverified. When adding new device claims, tag them or label them conventions.
 | Contract branch | `~/Developer/Projects/mightex-slc` (branch `contract`) | Abandoned. Porting source for contract models; see `lineage.md`. |
 | First test project | `~/Developer/Projects/mightex-slc-test` | Deprecated. Only code ever run against real hardware; its learnings are folded into `device_and_protocol.md` and `architecture.md`. |
 | Original plan draft | `~/Downloads/slice_build_plan_normal_mode_timed_on.md` | Superseded by `build_plan_normal_mode_timed_on.md` here. |
-| Vendor PDFs | `~/Downloads/slc_series_led_controller_software/` | Authoritative device documentation. Worth copying somewhere permanent — Downloads is a precarious home for the only source of the wire protocol. |
+| Vendor PDFs | `~/Downloads/slc_series_led_controller_software/` | The two authoritative documents are converted to markdown in `docs/vendor/`; the remaining two quick guides contain nothing protocol-relevant. |

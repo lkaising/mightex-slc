@@ -5,10 +5,12 @@ with everything empirically learned from real hardware by the deprecated test
 project. Provenance tags: **[V]** vendor docs, **[HW]** verified on the real
 device, **[C]** library convention. See `README.md` for the full legend.
 
-Vendor sources (in `~/Downloads/slc_series_led_controller_software/`):
-- *SDK Description* v1.1.4 (2018) — the authoritative command set, pp. 9–14.
+Vendor sources — converted to markdown in-repo at [`vendor/`](vendor/):
+- *SDK Description* v1.1.4 (2018) — the authoritative command set.
 - *User Manual* v1.3.6 (2018) — modes, module matrix, safety, MA04-MU §3.0.
-- *SLC-MA04-MU Manual Mode Quick Guide* v1.0.1.
+
+(The original PDFs, plus two quick guides with nothing protocol-relevant in
+them, remain in `~/Downloads/slc_series_led_controller_software/`.)
 
 ---
 

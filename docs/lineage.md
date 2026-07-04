@@ -144,6 +144,9 @@ the now-resolved `close_device` question. The Downloads copy can be deleted.
 2. **Old ideas do not migrate implicitly.** Anything carried forward from a
    predecessor must appear in these docs first (with provenance, if it is a
    device fact).
-3. **The vendor PDFs are the only source of the wire protocol.** They live in
-   `~/Downloads/slc_series_led_controller_software/` — copy them somewhere
-   permanent before Downloads gets cleaned out.
+3. **The vendor documents are the ultimate authority on the wire protocol.**
+   Resolved 2026-07-04: the two authoritative ones (*SDK Description* v1.1.4
+   and *User Manual* v1.3.6) are converted to markdown and live in-repo at
+   `docs/vendor/`. The original PDFs — plus the two quick guides, which
+   contain nothing protocol-relevant — remain in
+   `~/Downloads/slc_series_led_controller_software/`.
