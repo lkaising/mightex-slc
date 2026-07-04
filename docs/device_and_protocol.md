@@ -42,12 +42,17 @@ the bench-verified unit is the SA04.
   **1.0 s read timeout**. **[HW]**
 - Modules marked "X" have both USB and RS232 with a physical slide switch;
   power-cycle after switching. **[V]**
-- ⚠ **USB caveat:** the SDK states USB ("-U") modules enumerate as **HID
-  devices**, driven via the vendor DLL — the docs never describe a virtual COM
-  port for the module's own USB jack. **[V]** Our SA04 worked over a serial
-  path regardless. **[HW]** If an MA04-MU is ever driven over its USB port,
-  raw pyserial may not work at all; this is the single biggest open hardware
-  question. See §10.
+- **Decision: this library talks RS232/serial only.** **[C]** Background: the
+  SDK states USB ("-U") modules enumerate as **HID devices**, driven via the
+  vendor DLL (`Hiddll.dll`) — the docs never describe a virtual COM port for a
+  module's own USB jack, so pyserial cannot drive that path. **[V]** Our SA04
+  worked over a real serial path (`/dev/ttyUSB0` = the RS232 route via a
+  USB-serial adapter). **[HW]** Consequence: any unit used with this library
+  must expose an RS232 path — an "-S" unit, a dual-interface unit switched to
+  RS232, or the DB9 through a USB-serial adapter. A USB-only hookup (e.g. an
+  MA04-MU's front-panel USB jack) is out of scope by decision, not a problem
+  to solve. The ASCII command set is identical over both pipes **[V]**, so
+  nothing else in this document changes.
 
 ## 3. Command framing
 
@@ -226,9 +231,10 @@ the real device. The future RS232 backend must honor all of them. **[HW]**
 
 Carried forward deliberately — answers require hardware or vendor contact:
 
-1. **MA04-MU over its own USB port: HID or virtual COM?** SDK says HID. If
-   HID, raw pyserial cannot drive it and the transport needs an HID path or
-   the unit must be used via RS232-capable hardware. Test before designing.
+1. ~~MA04-MU over its own USB port: HID or virtual COM?~~ **Closed by
+   decision (2026-07-04):** the library is RS232/serial-only (§2), so the
+   module-USB/HID question is moot for software. Residual: a purchasing
+   constraint — future units must have an RS232 path.
 2. **The `Error` command** referenced after `#!` is undefined in all vendor
    docs. Does it exist? What codes?
 3. **`Iset > Imax` behavior** — clamp or `#?` rejection? Unspecified.

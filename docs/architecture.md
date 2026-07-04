@@ -209,5 +209,6 @@ retries, no port auto-discovery.
   with a staleness test — nothing more. No consumers, no ref-externalization
   projects, no audits of generated output (see `lineage.md` for the cautionary
   tale).
-- **No HID/USB path** unless the MA04-MU open question (§10.1 of the device
-  doc) forces it.
+- **No HID/USB path, ever.** By decision the library interfaces over
+  RS232/serial only (`device_and_protocol.md` §2). Units without an RS232
+  path are out of scope — a procurement constraint, not a software one.
