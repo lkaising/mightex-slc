@@ -15,122 +15,6 @@ request:
   type: object
 reply:
   $defs:
-    ControllerCapabilities:
-      additionalProperties: false
-      description: Aggregated read-only capabilities of an open controller. These
-        fields are device truth sent server-to-client, so the bounds below are sanity
-        guards on a trusted source, not request validation.
-      properties:
-        module_type:
-          $ref: '#/$defs/ModuleType'
-          description: Module family of this controller
-        channel_count:
-          description: Number of output channels
-          minimum: 1
-          type: integer
-        current_resolution_ma:
-          description: Current step size in milliamps. The vendor documents state
-            1.0 for AA, AV, SA, SV, HA, HV, and MA modules, 5.0 for CA, and 0.1 for
-            FA, FV, XA, and XV. They state no resolution for QA, so any QA value is
-            a server-side library convention, not a device fact.
-          exclusiveMinimum: 0
-          type: number
-        max_profile_steps:
-          description: Maximum usable profile steps, not counting the terminating
-            zero pair. The vendor documents give 127 for full-profile modules and
-            as few as 2 for modules they call limited.
-          maximum: 127
-          minimum: 2
-          type: integer
-        supports_trigger_mode:
-          description: Whether this module supports TRIGGER mode; False for MA and
-            CA
-          type: boolean
-        supports_load_voltage:
-          description: Whether this module supports load voltage read-back
-          type: boolean
-        supports_fan_control:
-          description: Whether this module exposes fan control
-          type: boolean
-        requires_initialization:
-          description: Whether this module must be prepared with initialize() first
-          type: boolean
-      required:
-      - module_type
-      - channel_count
-      - current_resolution_ma
-      - max_profile_steps
-      - supports_trigger_mode
-      - supports_load_voltage
-      - supports_fan_control
-      - requires_initialization
-      title: ControllerCapabilities
-      type: object
-    Error:
-      additionalProperties: false
-      description: 'Error reply envelope shared by every operation. Runtime-only rule
-        (does not export to JSON Schema): code is populated only for DeviceCommandError.
-        It may still be None for a DeviceCommandError when the device reports no code.'
-      properties:
-        status:
-          const: error
-          default: error
-          type: string
-        error_type:
-          $ref: '#/$defs/ErrorType'
-          description: Library exception name to raise
-        message:
-          description: Human-readable error description
-          type: string
-        code:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          default: null
-          description: Device-reported error code, present only for DeviceCommandError
-      required:
-      - error_type
-      - message
-      title: Error
-      type: object
-    ErrorType:
-      description: Library exception names reported in an error reply. These are the
-        leaf exception types the client maps an error reply back onto. The abstract
-        root MightexLEDError is intentionally absent because it is never raised directly.
-        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
-        is a subtype of the former, so the client can map directly to the most specific
-        class.
-      enum:
-      - ValueError
-      - ControllerClosedError
-      - DeviceConnectionError
-      - DeviceNotFoundError
-      - DeviceCommandError
-      - UnsupportedOperationError
-      title: ErrorType
-      type: string
-    ModuleType:
-      description: Module family reported by a controller. The integer ordering is
-        non-alphabetical and load-bearing; it is the device's own numbering and must
-        never be renumbered. The family does not always distinguish hardware variants
-        (for example SLC-MA04-MU and SLC-CA04-MU report as MA and CA but differ in
-        behavior), so prefer the controller capabilities over switching on this value.
-      enum:
-      - 0
-      - 1
-      - 2
-      - 3
-      - 4
-      - 5
-      - 6
-      - 7
-      - 8
-      - 9
-      - 10
-      - 11
-      - 12
-      title: ModuleType
-      type: integer
     OpenDeviceOk:
       additionalProperties: false
       description: Successful open reply. Returns the full capabilities so the client
@@ -148,7 +32,7 @@ reply:
           description: Serial number of the opened controller
           type: string
         capabilities:
-          $ref: '#/$defs/ControllerCapabilities'
+          $ref: ../components/controller_capabilities.yaml
           description: Read-only capabilities of the opened controller
       required:
       - device_id
@@ -158,9 +42,9 @@ reply:
       type: object
   discriminator:
     mapping:
-      error: '#/$defs/Error'
+      error: ../components/error.yaml
       ok: '#/$defs/OpenDeviceOk'
     propertyName: status
   oneOf:
   - $ref: '#/$defs/OpenDeviceOk'
-  - $ref: '#/$defs/Error'
+  - $ref: ../components/error.yaml

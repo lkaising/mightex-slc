@@ -2,19 +2,6 @@
 # Source of truth: the Pydantic models in src/mightex_slc/contract/.
 operation: set_active_mode
 request:
-  $defs:
-    OperatingMode:
-      description: Working mode of a channel. Each channel independently holds parameters
-        for NORMAL, STROBE, and TRIGGER, and one mode is active at a time. DISABLE
-        turns the channel output off. The integer values are the device's own wire
-        codes and must never be renumbered.
-      enum:
-      - 0
-      - 1
-      - 2
-      - 3
-      title: OperatingMode
-      type: integer
   additionalProperties: false
   description: Select the active working mode for a channel.
   properties:
@@ -26,7 +13,7 @@ request:
       minimum: 1
       type: integer
     mode:
-      $ref: '#/$defs/OperatingMode'
+      $ref: ../components/operating_mode.yaml
       description: The mode to make active
   required:
   - device_id
@@ -36,49 +23,6 @@ request:
   type: object
 reply:
   $defs:
-    Error:
-      additionalProperties: false
-      description: 'Error reply envelope shared by every operation. Runtime-only rule
-        (does not export to JSON Schema): code is populated only for DeviceCommandError.
-        It may still be None for a DeviceCommandError when the device reports no code.'
-      properties:
-        status:
-          const: error
-          default: error
-          type: string
-        error_type:
-          $ref: '#/$defs/ErrorType'
-          description: Library exception name to raise
-        message:
-          description: Human-readable error description
-          type: string
-        code:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          default: null
-          description: Device-reported error code, present only for DeviceCommandError
-      required:
-      - error_type
-      - message
-      title: Error
-      type: object
-    ErrorType:
-      description: Library exception names reported in an error reply. These are the
-        leaf exception types the client maps an error reply back onto. The abstract
-        root MightexLEDError is intentionally absent because it is never raised directly.
-        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
-        is a subtype of the former, so the client can map directly to the most specific
-        class.
-      enum:
-      - ValueError
-      - ControllerClosedError
-      - DeviceConnectionError
-      - DeviceNotFoundError
-      - DeviceCommandError
-      - UnsupportedOperationError
-      title: ErrorType
-      type: string
     SetActiveModeOk:
       additionalProperties: false
       description: Successful set-active-mode reply.
@@ -91,9 +35,9 @@ reply:
       type: object
   discriminator:
     mapping:
-      error: '#/$defs/Error'
+      error: ../components/error.yaml
       ok: '#/$defs/SetActiveModeOk'
     propertyName: status
   oneOf:
   - $ref: '#/$defs/SetActiveModeOk'
-  - $ref: '#/$defs/Error'
+  - $ref: ../components/error.yaml

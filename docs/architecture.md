@@ -207,9 +207,11 @@ retries, no port auto-discovery.
 - **No second validation layer.** Pydantic models are the only validator at
   the seam; hand-written jsonschema checks would drift.
 - **No schema-artifact ecosystem.** `schemas/` YAML is generated documentation
-  with a staleness test — nothing more. No consumers, no ref-externalization
+  with a staleness test — nothing more. No consumers, no post-hoc refactoring
   projects, no audits of generated output (see `lineage.md` for the cautionary
-  tale).
+  tale). The generator itself cross-references shared shapes instead of
+  inlining copies — an implementation detail of the generator, not an
+  ecosystem.
 - **No HID/USB path, ever.** By decision the library interfaces over
   RS232/serial only (`device_and_protocol.md` §2). Units without an RS232
   path are out of scope — a procurement constraint, not a software one.

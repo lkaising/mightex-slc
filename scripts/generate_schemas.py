@@ -15,10 +15,35 @@ Run from the repo root:
 This script is the only writer of schemas/; the YAML files it produces are
 generated artifacts and must never be hand-edited. It bootstraps sys.path to
 src/, so it works with or without the package installed.
+
+Design notes (deliberate, slice-local):
+
+- One bare schema per component file: the root of each components/*.yaml IS
+  the schema. The old branch wrapped every file in a ``{Name: schema}`` map
+  because two of its files held two schemas each; this slice has none, so
+  the wrapper would be dead weight.
+- Shared shapes (Error, ErrorType, ModuleType, ...) are defined once, in
+  their component file, and cross-referenced from every other file instead
+  of being inlined into each referencing file's $defs — the inlining that
+  made the old branch's output roughly half verbatim copies. Because the
+  component files are bare, cross-file refs are whole-file
+  (``../components/error.yaml``) with no ``#/Name`` fragment; the old
+  refinement plan's fragment convention applied only to its wrapped files.
+- Reply unions point at Error twice: a ``oneOf`` $ref and a bare-string
+  ``discriminator.mapping`` value. Both are rewritten, and a consistency
+  check fails the run on any dangling internal pointer, unreferenced $defs
+  entry, or external ref to a component file this script does not generate.
+- Deduplication lives here, in the generator, precisely so the output never
+  needs its own audit or refactoring project (docs/lineage.md, the
+  cautionary tale).
+- No operations.yaml index and no $schema key: nothing consumes these
+  files. They are generated documentation — field titles suppressed,
+  descriptions flattened to one line for stable dumps.
 """
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -76,6 +101,14 @@ COMPONENTS: dict[str, Any] = {
     "operating_mode": OperatingMode,
 }
 
+# Pydantic names $defs entries after the class, so this maps each shared
+# shape's $defs name to the component file that canonically owns it.
+_SHARED_DEF_FILES: dict[str, str] = {
+    component.__name__: f"{stem}.yaml" for stem, component in COMPONENTS.items()
+}
+
+_DEF_POINTER = re.compile(r"^#/\$defs/(\w+)$")
+
 
 class _NoFieldTitles(GenerateJsonSchema):
     """Suppress mechanical field titles; keep model/enum schema-level titles."""
@@ -86,6 +119,105 @@ class _NoFieldTitles(GenerateJsonSchema):
 
 def _schema(tp: Any) -> dict:
     return TypeAdapter(tp).json_schema(schema_generator=_NoFieldTitles)
+
+
+def _walk_pointers(node: Any, visit: Any) -> None:
+    """Apply ``visit`` to every schema pointer, replacing it with the result.
+
+    Pointers live in two places: ``$ref`` values, and the values of
+    ``discriminator.mapping`` — which are bare strings, not ``$ref`` keys, so
+    a $ref-only walker would leave them dangling after externalization.
+    """
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "$ref" and isinstance(value, str):
+                node[key] = visit(value)
+            elif (
+                key == "discriminator"
+                and isinstance(value, dict)
+                and isinstance(value.get("mapping"), dict)
+            ):
+                mapping = value["mapping"]
+                for tag, target in mapping.items():
+                    if isinstance(target, str):
+                        mapping[tag] = visit(target)
+            else:
+                _walk_pointers(value, visit)
+    elif isinstance(node, list):
+        for item in node:
+            _walk_pointers(item, visit)
+
+
+def _internal_def_names(schema: dict) -> set[str]:
+    """Collect the $defs names referenced by any pointer in ``schema``."""
+    names: set[str] = set()
+
+    def collect(pointer: str) -> str:
+        if match := _DEF_POINTER.match(pointer):
+            names.add(match.group(1))
+        return pointer
+
+    _walk_pointers(schema, collect)
+    return names
+
+
+def _externalize_shared(schema: dict, prefix: str) -> dict:
+    """Replace inlined copies of shared component shapes with cross-file refs.
+
+    Every ``#/$defs/<Name>`` pointer whose name owns a component file is
+    rewritten to ``<prefix><stem>.yaml``, then the orphaned $defs entries are
+    garbage-collected iteratively (deleting Error orphans the ErrorType it
+    referenced, and so on). Ends with the consistency check, so an emitted
+    schema can never look cleaner than it is.
+    """
+
+    def rewrite(pointer: str) -> str:
+        match = _DEF_POINTER.match(pointer)
+        if match and match.group(1) in _SHARED_DEF_FILES:
+            return prefix + _SHARED_DEF_FILES[match.group(1)]
+        return pointer
+
+    _walk_pointers(schema, rewrite)
+
+    defs = schema.get("$defs")
+    if defs is not None:
+        while True:
+            referenced = _internal_def_names(schema)
+            orphans = [name for name in defs if name not in referenced]
+            if not orphans:
+                break
+            for name in orphans:
+                del defs[name]
+        if not defs:
+            del schema["$defs"]
+
+    _check_consistency(schema)
+    return schema
+
+
+def _check_consistency(schema: dict) -> None:
+    """Reject dangling pointers, dead $defs entries, and unknown external refs."""
+    internal: set[str] = set()
+    external: set[str] = set()
+
+    def collect(pointer: str) -> str:
+        if match := _DEF_POINTER.match(pointer):
+            internal.add(match.group(1))
+        elif not pointer.startswith("#"):
+            external.add(pointer)
+        return pointer
+
+    _walk_pointers(schema, collect)
+
+    defs = set(schema.get("$defs", {}))
+    if dangling := internal - defs:
+        raise RuntimeError(f"Dangling internal refs: {sorted(dangling)}")
+    if unreferenced := defs - internal:
+        raise RuntimeError(f"Unreferenced $defs entries: {sorted(unreferenced)}")
+    known_files = set(_SHARED_DEF_FILES.values())
+    unknown = {ref for ref in external if ref.rsplit("/", 1)[-1] not in known_files}
+    if unknown:
+        raise RuntimeError(f"External refs to non-generated files: {sorted(unknown)}")
 
 
 def _one_line_descriptions(obj: Any) -> Any:
@@ -115,11 +247,14 @@ def _write(path: Path, payload: dict) -> None:
 
 def main() -> None:
     for name, component in COMPONENTS.items():
-        _write(SCHEMAS_DIR / "components" / f"{name}.yaml", _schema(component))
+        schema = _externalize_shared(_schema(component), prefix="./")
+        _write(SCHEMAS_DIR / "components" / f"{name}.yaml", schema)
     for name, (request, reply) in OPERATIONS.items():
+        request_schema = _externalize_shared(_schema(request), prefix="../components/")
+        reply_schema = _externalize_shared(_schema(reply), prefix="../components/")
         _write(
             SCHEMAS_DIR / "operations" / f"{name}.yaml",
-            {"operation": name, "request": _schema(request), "reply": _schema(reply)},
+            {"operation": name, "request": request_schema, "reply": reply_schema},
         )
     print(f"Wrote {len(COMPONENTS) + len(OPERATIONS)} schema files under {SCHEMAS_DIR}")
 

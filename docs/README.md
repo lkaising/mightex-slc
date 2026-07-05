@@ -26,16 +26,18 @@ The acceptance test for the slice is the one fully-written file in the project:
 `../../examples/normal_mode_timed_on.py`. It doubles as the de facto public API
 specification.
 
-## Current state (verified 2026-07-04, post-Phase 0)
+## Current state (verified 2026-07-04, post-Phase 1)
 
-The repo is still a deliberate, faithful skeleton of the target layout: every
-file under `src/` is a header-only or docstring-only stub with no executable
-implementation bodies. Phase 0 of the build plan is complete — `pyproject.toml`
-is authored (Hatchling, `src/` layout, editable install verified from a
-sibling examples environment), `src/mightex_slc/__init__.py` exists as a
-header-only package-root stub, and `phase_status.md` in this folder tracks
-per-phase progress. The root `README.md` is still empty. Phase 1 (the contract
-foundation) has not started.
+Phase 1 (the contract foundation) is complete under a revised Phase 1 /
+Phase 1.5 split: `src/mightex_slc/contract/` holds the slice's six
+operations, six components, and two base models as working Pydantic code,
+and `scripts/generate_schemas.py` generates the YAML schemas in `schemas/`
+(each shared shape is emitted once, in its component file, and
+cross-referenced — not inlined per file). Formal contract tests and the
+schema staleness test are deferred to Phase 1.5. Everything else under
+`src/` is still a header-only or docstring-only stub, the root `README.md`
+is still empty, and Phase 2 (the transport seam and fake) has not started.
+`phase_status.md` in this folder tracks per-phase progress.
 
 ## The documents
 

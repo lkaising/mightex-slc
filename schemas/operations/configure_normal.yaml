@@ -40,54 +40,11 @@ reply:
           type: string
       title: ConfigureNormalOk
       type: object
-    Error:
-      additionalProperties: false
-      description: 'Error reply envelope shared by every operation. Runtime-only rule
-        (does not export to JSON Schema): code is populated only for DeviceCommandError.
-        It may still be None for a DeviceCommandError when the device reports no code.'
-      properties:
-        status:
-          const: error
-          default: error
-          type: string
-        error_type:
-          $ref: '#/$defs/ErrorType'
-          description: Library exception name to raise
-        message:
-          description: Human-readable error description
-          type: string
-        code:
-          anyOf:
-          - type: integer
-          - type: 'null'
-          default: null
-          description: Device-reported error code, present only for DeviceCommandError
-      required:
-      - error_type
-      - message
-      title: Error
-      type: object
-    ErrorType:
-      description: Library exception names reported in an error reply. These are the
-        leaf exception types the client maps an error reply back onto. The abstract
-        root MightexLEDError is intentionally absent because it is never raised directly.
-        DEVICE_CONNECTION and DEVICE_NOT_FOUND are both present even though the latter
-        is a subtype of the former, so the client can map directly to the most specific
-        class.
-      enum:
-      - ValueError
-      - ControllerClosedError
-      - DeviceConnectionError
-      - DeviceNotFoundError
-      - DeviceCommandError
-      - UnsupportedOperationError
-      title: ErrorType
-      type: string
   discriminator:
     mapping:
-      error: '#/$defs/Error'
+      error: ../components/error.yaml
       ok: '#/$defs/ConfigureNormalOk'
     propertyName: status
   oneOf:
   - $ref: '#/$defs/ConfigureNormalOk'
-  - $ref: '#/$defs/Error'
+  - $ref: ../components/error.yaml
