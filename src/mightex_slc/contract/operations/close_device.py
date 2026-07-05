@@ -5,3 +5,26 @@
 #
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
+
+from __future__ import annotations
+
+from typing import Annotated, Literal, Union
+
+from pydantic import Field
+
+from ..base import ContractModel
+from ..components.error import Error
+from .base import DeviceRequest
+
+
+class CloseDeviceRequest(DeviceRequest):
+    """Close the controller handle and release it."""
+
+
+class CloseDeviceOk(ContractModel):
+    """Successful close reply."""
+
+    status: Literal["ok"] = "ok"
+
+
+CloseDeviceReply = Annotated[Union[CloseDeviceOk, Error], Field(discriminator="status")]
