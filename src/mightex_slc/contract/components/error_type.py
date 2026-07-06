@@ -12,13 +12,10 @@ from enum import Enum
 
 
 class ErrorType(str, Enum):
-    """Library exception names reported in an error reply.
+    """Concrete error types returned in operation failure replies.
 
-    These are the leaf exception types the client maps an error reply back
-    onto. The abstract root MightexLEDError is intentionally absent because it
-    is never raised directly. DEVICE_CONNECTION and DEVICE_NOT_FOUND are both
-    present even though the latter is a subtype of the former, so the client
-    can map directly to the most specific class.
+    Values mirror the client exception classes used to reconstruct failures
+    across the transport boundary.
     """
 
     # TODO: VALUE_ERROR may never appear in a server envelope, because

@@ -12,13 +12,10 @@ from enum import IntEnum
 
 
 class ModuleType(IntEnum):
-    """Module family reported by a controller.
+    """Controller module family reported by the device.
 
-    The integer ordering is non-alphabetical and load-bearing; it is the
-    device's own numbering and must never be renumbered. The family does not
-    always distinguish hardware variants (for example SLC-MA04-MU and
-    SLC-CA04-MU report as MA and CA but differ in behavior), so prefer the
-    controller capabilities over switching on this value.
+    Values are vendor wire codes and must not be renumbered. Some hardware
+    variants share a family code, so use ControllerCapabilities for behavior.
     """
 
     AA = 0

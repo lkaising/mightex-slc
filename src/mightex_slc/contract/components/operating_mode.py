@@ -12,12 +12,10 @@ from enum import IntEnum
 
 
 class OperatingMode(IntEnum):
-    """Working mode of a channel.
+    """Channel operating mode.
 
-    Each channel independently holds parameters for NORMAL, STROBE, and
-    TRIGGER, and one mode is active at a time. DISABLE turns the channel
-    output off. The integer values are the device's own wire codes and must
-    never be renumbered.
+    Values are vendor wire codes and must not be renumbered. Mode availability
+    is module-dependent; for example, MA and CA do not support TRIGGER.
     """
 
     DISABLE = 0

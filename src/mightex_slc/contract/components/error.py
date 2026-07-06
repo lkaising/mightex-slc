@@ -17,19 +17,25 @@ from .error_type import ErrorType
 
 
 class Error(ContractModel):
-    """Error reply envelope shared by every operation.
+    """Operation failure reply.
 
-    Runtime-only rule (does not export to JSON Schema): code is populated only
-    for DeviceCommandError. It may still be None for a DeviceCommandError when
-    the device reports no code.
+    A device error code is only attached to DeviceCommandError, and only when
+    the controller reports one.
     """
 
-    status: Literal["error"] = "error"
-    error_type: ErrorType = Field(description="Library exception name to raise")
-    message: str = Field(description="Human-readable error description")
+    status: Literal["error"] = Field(
+        default="error",
+        description="Discriminator for error replies.",
+    )
+    error_type: ErrorType = Field(
+        description="Concrete error type to raise on the client.",
+    )
+    message: str = Field(
+        description="Human-readable failure message.",
+    )
     code: int | None = Field(
         default=None,
-        description="Device-reported error code, present only for DeviceCommandError",
+        description="Device error code, when reported by the controller.",
     )
 
     @model_validator(mode="after")

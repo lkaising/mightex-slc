@@ -15,23 +15,27 @@ from .module_type import ModuleType
 
 
 class DeviceDescriptor(ContractModel):
-    """Identity of a connected controller as seen during discovery.
+    """Identity data for a discovered controller.
 
-    Only the number of connected controllers is knowable before a controller
-    is opened. Serial number, module type, and channel count are read through
-    functions that need an open device, so they are None here until the device
-    is opened and are never guessed.
+    The SDK discovers controllers by count and opens them by zero-based index.
+    Serial number, module family, and channel count require an open device handle,
+    so they may be None in discovery-only responses.
     """
 
-    index: int = Field(ge=0, description="Zero-based device index for open_device")
+    index: int = Field(
+        ge=0,
+        description="Discovery-session index for open_device"
+    )
     serial_number: str | None = Field(
-        default=None, description="Serial number if readable before opening, else None"
+        default=None,
+        description="Controller serial number, when resolved.",
     )
     module_type: ModuleType | None = Field(
-        default=None, description="Module family if readable before opening, else None"
+        default=None,
+        description="Controller module family, when resolved.",
     )
     channel_count: int | None = Field(
         default=None,
         ge=1,
-        description="Channel count if readable before opening, else None",
+        description="Number of output channels, when resolved.",
     )
