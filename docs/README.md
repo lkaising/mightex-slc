@@ -1,6 +1,6 @@
 # mightex-slc Documentation
 
-Status: source of truth as of 2026-07-04. This folder supersedes every earlier
+Status: source of truth as of 2026-07-06. This folder supersedes every earlier
 document, branch, and project. If something here conflicts with an older
 artifact, this folder wins.
 
@@ -9,16 +9,19 @@ artifact, this folder wins.
 ## What this project is
 
 `mightex-slc` is a Python library for controlling Mightex Sirius SLC-series
-multi-channel LED controllers. The library presents a clean, transport-neutral
-public API (`enumerate_devices()`, `open_device()`, `Controller`, `Channel`),
-validates every call at a contract seam built from shared Pydantic models, and
-drives the device through a swappable transport layer — an in-memory fake for
-hardware-free development, and an RS232 backend for real hardware.
+multi-channel LED controllers. The library presents a clean, protocol-neutral
+public API (`open_device()`, `Controller`, `Channel`) — the serial target is
+explicit only at the open boundary (`open_device(port=...)`; no raw command
+detail anywhere) — validates every call at a contract seam built from shared
+Pydantic models, and drives the device through a swappable transport layer —
+an in-memory fake for hardware-free development, and an RS232 backend for
+real hardware. There is no device enumeration and no port scanning: opening
+a serial port is side-effecting, so the user names the port.
 
 Development is **slice-driven**: instead of building the whole library at once
 (the mistake that killed the previous attempt), we build one narrow vertical
 slice at a time, proving the full stack end to end before adding breadth. The
-current slice is **`normal_mode_timed_on`**: enumerate, open, initialize,
+current slice is **`normal_mode_timed_on`**: open, initialize,
 configure a channel's NORMAL-mode current, switch the channel on, wait
 host-side, switch it off, close — all against the fake transport, no hardware.
 
@@ -26,22 +29,25 @@ The acceptance example for the slice is the one fully-written file in the projec
 `../../examples/normal_mode_timed_on.py`. It doubles as the de facto public API
 specification.
 
-## Current state (verified 2026-07-06, post-Phase 2)
+## Current state (verified 2026-07-06, post-Phase 2, post serial-target refactor)
 
 Phase 1 (the contract foundation) is complete: `src/mightex_slc/contract/`
-holds the slice's six operations, six components, and two base models as
+holds the slice's five operations, five components, and two base models as
 working Pydantic code, and `scripts/generate_schemas.py` generates the YAML
 schemas in `schemas/` (each shared shape is emitted once, in its component
 file, and cross-referenced — not inlined per file; rerun the generator after
 any contract-model change). Phase 2 (the transport seam and fake) is complete:
 `src/mightex_slc/transport/base.py` defines the `Transport` interface the
-server will drive (the slice's six operations, an opaque handle, and the
+server will drive (the slice's five operations, an opaque handle, and the
 transport exception family), and `src/mightex_slc/transport/fake/` implements
 it as one in-memory SLC-MA04-MU with per-channel state and the device's real
-configure-then-activate semantics. The `server/`, `client/`, and
+configure-then-activate semantics. On 2026-07-06, after Phase 2, the API went
+serial-target-first: `enumerate_devices` and `DeviceDescriptor` were removed,
+and `open_device` now takes `port: str | None` (a serial device path, or
+`None` for the backend's configured default). The `server/`, `client/`, and
 `transport/rs232/` packages and the root `__init__.py` are still header-only
 or docstring-only stubs, the root `README.md` is still empty, and Phase 3
-(the `enumerate_devices` tracer bullet) has not started. `phase_status.md` in
+(the `open_device` tracer bullet) has not started. `phase_status.md` in
 this folder tracks per-phase progress.
 
 ## The documents

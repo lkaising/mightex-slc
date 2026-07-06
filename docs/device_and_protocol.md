@@ -22,8 +22,9 @@ The unit everything was actually tested on **[HW]**:
   4-channel, SA family: 2-step profiles, no voltage monitoring, trigger mode
   present, 1 mA current resolution, 1 A NORMAL / 3.5 A pulsed ceilings.
 - Connected over serial at `/dev/ttyUSB0` on Linux (USB-serial path). The new
-  environment is macOS, so port discovery will target `/dev/cu.usbserial-*`
-  instead — nothing in any prior project covers that yet. **[C]**
+  environment is macOS, where the device path is `/dev/cu.usbserial-*` instead
+  — the user identifies and names it (the library never scans for ports), and
+  nothing in any prior project covers macOS yet. **[C]**
 - Bench LEDs (Thorlabs): CH1 **M850L3** (850 nm, capped 1000 mA by NORMAL
   mode; datasheet 1200 mA), CH2 **M940L3** (940 nm), CH3 **M1050L4** (1050 nm,
   capped 600 mA), CH4 unused (reserved for a future 1300 nm LED). Use case:
@@ -248,5 +249,5 @@ Carried forward deliberately — answers require hardware or vendor contact:
 7. **Which module families are 2-step-limited** — inferred, not enumerated,
    by the vendor.
 8. **QA family current resolution** — undocumented.
-9. **macOS serial discovery** — all hardware experience is Linux
+9. **macOS serial behavior** — all hardware experience is Linux
    (`/dev/ttyUSB0`, `dialout` group); the `/dev/cu.*` path is untested.

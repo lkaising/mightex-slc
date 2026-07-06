@@ -1,6 +1,6 @@
 # mightex-slc — Architecture
 
-Status: source of truth as of 2026-07-04. Describes the design the current
+Status: source of truth as of 2026-07-06. Describes the design the current
 repo skeleton encodes and the `normal_mode_timed_on` slice proves. Device
 facts live in `device_and_protocol.md`; the step-by-step build order lives in
 `build_plan_normal_mode_timed_on.md`.
@@ -11,10 +11,13 @@ facts live in `device_and_protocol.md`; the step-by-step build order lives in
 
 A Python library for Mightex SLC LED controllers with three properties:
 
-1. **A transport-neutral public API.** No serial detail, no raw command
-   passthrough in any signature. Users see `Controller` and `Channel` objects;
-   whether the backend is a fake, an in-process RS232 driver, or (someday) a
-   socket to a daemon is invisible.
+1. **A protocol-neutral public API.** No raw command or wire-protocol detail
+   in any signature. The one place serial reality is visible is the open
+   boundary: `open_device(port=...)` names the serial target explicitly when
+   opening an RS232-backed controller (`None` means the backend's configured
+   default). Past open, users see `Controller` and `Channel` objects; whether
+   the backend is a fake, an in-process RS232 driver, or (someday) a socket
+   to a daemon is invisible.
 2. **A validated contract seam.** Every operation crosses a client→server
    boundary as a plain JSON-mode dict, built from and re-validated against
    shared Pydantic models. Kept honest even in-process, so a later daemon
@@ -53,8 +56,8 @@ mightex_slc/__init__ the assembled public surface
   extra fields forbidden (`ContractModel`). The single source of truth for
   what crosses the seam. Schema YAML in `schemas/` is generated *from* these
   models (never edited) by `scripts/generate_schemas.py`.
-- **`transport/`** — `base.py` defines what the server needs: enumerate
-  present devices, open one by index (returning a handle plus capabilities),
+- **`transport/`** — `base.py` defines what the server needs: open the
+  controller at a serial-port target (returning a handle plus capabilities),
   issue per-device/per-channel commands, close. `fake/` implements it in
   memory; `rs232/` will implement it against the real device (§6).
 - **`server/`** — owns live state. `api.py` is the single entry point;
@@ -65,10 +68,10 @@ mightex_slc/__init__ the assembled public surface
   envelope.
 - **`client/`** — `link.py` is the seam client-side: build model →
   `model_dump(mode="json")` → call server entry point → parse reply → map
-  `error_type` to an exception. `discovery.py` holds the module-level
-  `enumerate_devices`/`open_device` functions; `controller.py`/`channel.py`
-  are thin proxies; `types.py` re-exports contract shapes; `errors.py` holds
-  the exception hierarchy.
+  `error_type` to an exception. `controller.py` holds the module-level
+  `open_device` function and the `Controller` proxy it constructs;
+  `channel.py` is the thin `Channel` proxy; `types.py` re-exports contract
+  shapes; `errors.py` holds the exception hierarchy.
 
 The client never imports server classes; it reaches the server only through
 the one backend binding inside `link`. That keeps the seam a real boundary.
@@ -79,10 +82,11 @@ Fixed by `examples/normal_mode_timed_on.py` (the acceptance example) and the
 polished naming from the contract branch's API skeleton. For the slice:
 
 ```python
-from mightex_slc import OperatingMode, enumerate_devices, open_device
+from mightex_slc import OperatingMode, open_device
 
-devices = enumerate_devices()                    # -> list[DeviceDescriptor]  (.index)
-with open_device(devices[0].index) as controller:  # -> Controller (context manager)
+PORT: str | None = None  # e.g. "/dev/cu.usbserial-A6002xyz"; None = backend default
+
+with open_device(port=PORT) as controller:        # -> Controller (context manager)
     if controller.requires_initialization:        # capability cached from open
         controller.initialize()
     channel = controller.channel(1)               # one-based; pure client-side accessor
@@ -97,6 +101,12 @@ with open_device(devices[0].index) as controller:  # -> Controller (context mana
 
 Decisions this implies (resolving stale skeleton docstrings):
 
+- `open_device` targets a serial port; there is no enumeration and no port
+  scanning. Probing a port is a side-effecting act (opening sends ECHOOFF,
+  which enters PC Mode on MA/CA-MU variants), so the user names the port —
+  `None` means the backend's configured default target (the fake's one
+  simulated controller; a future rs232 default set by constructor, env, or
+  config). An rs232 backend without a configured default fails the open.
 - `Controller` caches the `ControllerCapabilities` returned by open —
   `requires_initialization` must answer without a round trip. (The skeleton
   docstring's "holds a device_id and nothing else" is superseded.)
@@ -187,14 +197,16 @@ parsers: strip "#", split on whitespace; ?CURRENT takes the LAST two tokens
 
 Plus the behavioral obligations: ~0.3 s settle between a parameter write and
 its read-back; disable channels in `finally` (the device keeps driving LEDs
-after the port closes); program → verify → only then `STORE`; macOS port
-discovery (`/dev/cu.usbserial-*`) is new ground.
+after the port closes); program → verify → only then `STORE`; identifying the
+right `/dev/cu.usbserial-*` path on macOS is on the user (the library never
+scans for it), and running there is new ground.
 
 **Known weak spots to do better than the test project:** the 20 ms drain is a
 heuristic, not a framing guarantee (the per-command buffer reset is the real
 safety net); the 0.3 s settle lived only in a test, unencoded; query-response
 parsing (`?TRIGGER`/`?TRIGP`) was never made robust; no thread safety, no
-retries, no port auto-discovery.
+retries. (Its lack of port auto-discovery is not a weak spot — that is now
+this library's deliberate design; see §7.)
 
 ## 7. Deliberate cuts (settled — do not reopen)
 
@@ -214,3 +226,9 @@ retries, no port auto-discovery.
 - **No HID/USB path, ever.** By decision the library interfaces over
   RS232/serial only (`device_and_protocol.md` §2). Units without an RS232
   path are out of scope — a procurement constraint, not a software one.
+- **No port scanning or probing, ever.** No `enumerate_devices()`, no
+  `list_serial_ports()`, no `probe_serial_ports()`. The vendor's
+  `InitDevices`/`OpenDevice(DeviceIndex)` flow is USB/HID-only; RS232 users
+  address the port directly. Probing is not passive — opening a port sends
+  ECHOOFF, which enters PC Mode on MA/CA-MU variants — so the library opens
+  exactly the port it is given and nothing else.

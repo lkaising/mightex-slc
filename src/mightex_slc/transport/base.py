@@ -10,7 +10,7 @@
 The interface both backends satisfy: the swap seam.
 
 It defines the hardware-agnostic transport contract the server device model
-drives: enumerate present devices, open one by index, issue the slice's
+drives: open the controller at a serial-port target, issue the slice's
 per-device and per-channel operations against an opaque handle, and close that
 handle. Because the device model only knows this interface, the fake and the
 real backend are interchangeable, and nothing above transport knows or cares
@@ -22,7 +22,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from ..contract import ControllerCapabilities, DeviceDescriptor, OperatingMode
+from ..contract import ControllerCapabilities, OperatingMode
 
 
 class TransportError(Exception):
@@ -34,7 +34,7 @@ class TransportError(Exception):
 
 
 class DeviceNotPresentError(TransportError):
-    """No device answers at the requested discovery index."""
+    """Nothing answers at the requested serial port."""
 
 
 class InvalidHandleError(TransportError):
@@ -69,7 +69,7 @@ class TransportOpenResult:
 
 
 class Transport(ABC):
-    """The interface the server drives; carries the slice's six operations.
+    """The interface the server drives; carries the slice's five operations.
 
     It is allowed to grow with later slices without the contract moving.
     close_device is idempotent and never a safety action; every other
@@ -78,15 +78,15 @@ class Transport(ABC):
     """
 
     @abstractmethod
-    def enumerate_devices(self) -> list[DeviceDescriptor]:
-        """Return one descriptor per present device, in index order."""
-
-    @abstractmethod
-    def open_device(self, index: int) -> TransportOpenResult:
-        """Open the device at a discovery index and return its handle, serial
-        number, and capabilities. Raises DeviceNotPresentError when nothing
-        answers at the index, TransportError when the device is already held
-        open."""
+    def open_device(self, port: str | None = None) -> TransportOpenResult:
+        """Open the controller at a serial-port target and return its handle,
+        serial number, and capabilities. port is the serial device path
+        (e.g. /dev/cu.usbserial-A6002xyz); None uses the backend's configured
+        default target, and a backend without one fails the open. A transport
+        never scans or probes ports — it opens only the one it is told to
+        (opening has side effects: PC-Mode entry on MA/CA modules). Raises
+        DeviceNotPresentError when nothing answers at the port, TransportError
+        when the device is already held open."""
 
     @abstractmethod
     def initialize(self, handle: TransportHandle) -> None:

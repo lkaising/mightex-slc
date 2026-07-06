@@ -49,17 +49,18 @@ The example (at `~/Developer/Projects/mightex/examples/normal_mode_timed_on.py`,
 already fully written — the one complete file in the project) exercises exactly
 this call sequence, and nothing else:
 
-1. `enumerate_devices()` returns at least one `DeviceDescriptor`.
-2. `open_device(index)` returns a `Controller` usable as a context manager.
-3. `controller.requires_initialization` is read; if true, `controller.initialize()`.
-4. `controller.channel(1)` returns a `Channel`.
-5. `channel.configure_normal(current_max_ma, current_set_ma)`.
-6. `channel.set_active_mode(OperatingMode.NORMAL)`.
-7. host-side `time.sleep(...)`.
-8. `channel.set_active_mode(OperatingMode.DISABLE)` in a `finally`.
-9. context exit calls `controller.close()`.
+1. `open_device(port=PORT)` returns a `Controller` usable as a context
+   manager (`PORT` is `None` for the backend's configured default target —
+   the fake's one simulated controller — or a serial device path).
+2. `controller.requires_initialization` is read; if true, `controller.initialize()`.
+3. `controller.channel(1)` returns a `Channel`.
+4. `channel.configure_normal(current_max_ma, current_set_ma)`.
+5. `channel.set_active_mode(OperatingMode.NORMAL)`.
+6. host-side `time.sleep(...)`.
+7. `channel.set_active_mode(OperatingMode.DISABLE)` in a `finally`.
+8. context exit calls `controller.close()`.
 
-If those nine steps pass through the full stack and return correctly, the seam
+If those eight steps pass through the full stack and return correctly, the seam
 is proven and the rest of the library is a matter of repeating the pattern.
 
 ---
@@ -88,7 +89,7 @@ package-root items; the contract and schema items remain open for Phase 1:
   `.python-version` keeps its pyenv meaning (it names the virtualenv
   `mightex-slc`, not a Python version).
 - **No top-level `mightex_slc/__init__.py` existed.** The example imports
-  `from mightex_slc import OperatingMode, enumerate_devices, open_device`, so
+  `from mightex_slc import OperatingMode, open_device`, so
   the package root must eventually assemble and re-export the public surface.
   Phase 0 created it as a header-only stub so the package is importable; the
   actual re-exports wait for Phase 5.
@@ -117,9 +118,9 @@ package-root items; the contract and schema items remain open for Phase 1:
 
 ## 3. Guiding principles for this slice
 
-**Tracer bullet before breadth.** Build one operation (`enumerate_devices`) all
+**Tracer bullet before breadth.** Build one operation (`open_device`) all
 the way through every layer and get a green round-trip run before writing the
-other five. This front-loads the seam risk and turns the remaining operations
+other four. This front-loads the seam risk and turns the remaining operations
 into mechanical repetition of a known-good shape.
 
 **Contract is upstream; build downstream from it.** The client and server both
@@ -174,20 +175,19 @@ That keeps the seam a real boundary you can later replace.
 
 ## 5. Scope: in and out
 
-### In scope (the six operations)
+### In scope (the five operations)
 
 | Operation | Why the slice needs it |
 |---|---|
-| `enumerate_devices` | step 1, and the tracer bullet |
-| `open_device` | step 2, establishes the `device_id` and session entry |
-| `initialize` | step 3, exercised when the fake reports `requires_initialization` |
-| `configure_normal` | step 5 |
-| `set_active_mode` | steps 6 and 8 |
-| `close_device` | step 9 |
+| `open_device` | step 1, the tracer bullet; establishes the `device_id` and session entry |
+| `initialize` | step 2, exercised when the fake reports `requires_initialization` |
+| `configure_normal` | step 4 |
+| `set_active_mode` | steps 5 and 7 |
+| `close_device` | step 8 |
 
-### In scope (the six components + two bases)
+### In scope (the five components + two bases)
 
-`error`, `error_type`, `module_type`, `operating_mode`, `device_descriptor`,
+`error`, `error_type`, `module_type`, `operating_mode`,
 `controller_capabilities`; plus `contract/base.py` (`ContractModel`) and
 `contract/operations/base.py` (`DeviceRequest`, `ChannelRequest`).
 
@@ -243,7 +243,7 @@ in `phase_status.md`).
 
 ### Phase 1: contract foundation
 
-Port the six operations, six components, and two bases from the contract
+Port the five operations, five components, and two bases from the contract
 branch (`~/Developer/Projects/mightex-slc/contract/mightex_contract/`). Fix
 every import to relative form. Write the three contract `__init__.py` files to
 re-export **only what is present** — the contract branch's versions re-export
@@ -265,7 +265,7 @@ port whether that split stands for this library, or whether the
 shape. Until decided, `normal_parameters.py` stays an empty stub.
 
 Gate to pass before moving on: `import mightex_slc.contract` succeeds; a valid
-request model for each of the six operations constructs, dumps to JSON, and
+request model for each of the five operations constructs, dumps to JSON, and
 re-validates; an invalid one is rejected. Concrete invalid cases worth
 checking: `configure_normal` with `current_set_ma` above `current_max_ma`, a
 negative current, a channel number below one, and a missing `device_id`. This
@@ -274,10 +274,10 @@ picture, verified by a throwaway script or REPL session.
 
 ### Phase 2: transport seam and fake
 
-Define `transport/base.py` as the interface the server drives: enumerate
-present devices, open one by index (returning a handle and its capabilities),
+Define `transport/base.py` as the interface the server drives: open the
+controller at a serial-port target (returning a handle and its capabilities),
 issue a per-channel or per-device command, and close a handle. Keep it small;
-it only needs to carry the six operations of this slice, and it is allowed to
+it only needs to carry the five operations of this slice, and it is allowed to
 grow later without the contract moving.
 
 Implement `transport/fake/fake_transport.py` as an in-memory device per
@@ -290,36 +290,37 @@ open with `requires_initialization=True`, so the acceptance run exercises the
 `set_active_mode` changes output — are the device's real semantics
 (`device_and_protocol.md` §7), not conveniences.
 
-### Phase 3: tracer bullet, `enumerate_devices` end to end
+### Phase 3: tracer bullet, `open_device` end to end
 
 Wire the thinnest possible full path for one operation and get it green:
 
-client `enumerate_devices()` builds `EnumerateDevicesRequest`, dumps it, and
-calls the server entry point; the server validates, routes to a handler, asks
-the fake transport for present devices, and returns `EnumerateDevicesOk` with
-the descriptors; the client parses the reply and returns the descriptor list.
+client-level open builds `OpenDeviceRequest`, dumps it, and calls the server
+entry point; the server validates, routes to a handler, opens the fake
+transport, creates a live handle, registers it under a new `device_id`, and
+returns `OpenDeviceOk` with that id, the serial number, and the capabilities;
+the client parses the reply.
 
-Prove it with a throwaway script (or REPL session) that calls the client
-function and confirms it returns a non-empty descriptor list from the fake.
-When this passes, the seam mechanics are proven: model build, JSON dump,
-dispatch, validate, route, transport call, reply model, parse. Everything
-after this is repetition.
+`open_device` is deliberately first because it is the operation that
+establishes the session: it proves the seam mechanics (model build, JSON dump,
+dispatch, validate, route, transport call, reply model, parse) **and** the
+`device_id` registration every later operation depends on, while needing no
+channel and no pre-existing `device_id` — still the smallest self-standing
+round trip. Everything after this is repetition.
 
-`enumerate_devices` is deliberately first because it carries no `device_id`
-and no channel, so it proves the seam without also needing the session and the
-proxy layer.
+Prove it with a throwaway script (or REPL session) that calls the client-level
+open path with no arguments and confirms that, through the full seam, the fake
+answers with an `OpenDeviceOk` carrying a non-empty `device_id`, serial
+`04-000000-001`, and capabilities with `requires_initialization=True`. (Close
+is not part of the tracer; the throwaway process exiting is fine.)
 
-### Phase 4: fan out the remaining five operations
+### Phase 4: fan out the remaining four operations
 
-Following the proven path, add handlers and the fake behavior for
-`open_device`, `initialize`, `configure_normal`, `set_active_mode`, and
-`close_device`. `open_device` is the one that introduces the session: on open,
-the server creates a live handle, registers it under a new `device_id`, and
-returns that id plus the capabilities. Every later call carries the
-`device_id`, and the server looks up the live handle by it. `close_device`
-removes it from the session.
+Following the proven path, add handlers for `initialize`, `configure_normal`,
+`set_active_mode`, and `close_device`. Every one of them carries the
+`device_id` from open, and the server looks up the live handle by it.
+`close_device` removes it from the session.
 
-Gate to pass: each of the six operations round-trips against the fake in
+Gate to pass: each of the five operations round-trips against the fake in
 isolation. No public proxy layer is required yet; these can be driven directly
 through `link` in a throwaway script.
 
@@ -328,25 +329,22 @@ through `link` in a throwaway script.
 Now add the ergonomic layer the example actually calls:
 
 - `client/errors.py`: the public exception hierarchy (`architecture.md` §4).
-- `client/types.py`: re-export `OperatingMode`, `DeviceDescriptor`,
-  `ModuleType`, `ControllerCapabilities` from the contract (imported, not
-  mirrored).
-- `client/discovery.py` (a new file — the skeleton does not include it): the
-  module-level `enumerate_devices` and `open_device` functions, kept separate
-  so `controller.py` stays focused on the proxy. `open_device` constructs a
-  `Controller`.
-- `client/controller.py`: the `Controller` proxy holding `device_id` **and the
-  capabilities from open** (its skeleton docstring saying "a device_id and
-  nothing else" is superseded — `requires_initialization` must answer without
-  a round trip), with `requires_initialization`, `initialize`, `channel`,
-  `close`, `is_closed`, and the context-manager methods.
+- `client/types.py`: re-export `OperatingMode`, `ModuleType`,
+  `ControllerCapabilities` from the contract (imported, not mirrored).
+- `client/controller.py`: the module-level `open_device(port=None)` function
+  alongside the `Controller` proxy it constructs (the `open()`-returns-object
+  idiom; with enumeration gone there is nothing else a discovery module would
+  hold). The `Controller` holds `device_id` **and the capabilities from open**
+  (its skeleton docstring saying "a device_id and nothing else" is superseded —
+  `requires_initialization` must answer without a round trip), with
+  `requires_initialization`, `initialize`, `channel`, `close`, `is_closed`,
+  and the context-manager methods.
 - `client/channel.py`: the `Channel` proxy holding `device_id` and a one-based
   channel number, with `configure_normal`, `set_active_mode`, and `number`.
   `channel(n)` is a pure client-side accessor that builds this proxy; it never
   crosses the seam.
-- `mightex_slc/__init__.py`: re-export `enumerate_devices`, `open_device`,
-  `Controller`, `Channel`, `OperatingMode`, `DeviceDescriptor`, and the
-  exception classes.
+- `mightex_slc/__init__.py`: re-export `open_device`, `Controller`, `Channel`,
+  `OperatingMode`, and the exception classes.
 
 ### Phase 6: acceptance — run the example
 
@@ -355,9 +353,13 @@ confirm it completes cleanly: no leaked exception, and the fake left in the
 expected end state (the channel's stored normal params match what was set,
 and the active mode is `DISABLE` after the `finally`).
 
-Also confirm one error path by hand (throwaway script or REPL): opening a bad
-index raises `DeviceNotFoundError`. This proves the error-reply mapping in
-`link`, which the happy-path example never exercises.
+Also confirm one error path by hand (throwaway script or REPL): a second
+`open_device()` while the controller is held open raises
+`DeviceConnectionError` (the fake's `TransportError` mapped through the
+`Error` envelope). This proves the error-reply mapping in `link`, which the
+happy-path example never exercises. (`DeviceNotFoundError` — nothing answers
+at the port — is reachable only on the rs232 backend and waits for hardware
+bring-up; the fake cannot produce it.)
 
 ---
 
@@ -377,16 +379,13 @@ Contract (port from the contract branch, fix imports, trim re-exports):
   numbering (AA=0 … QA=12 — load-bearing, never renumber).
 - `contract/components/operating_mode.py`: `OperatingMode` (IntEnum,
   DISABLE=0, NORMAL=1, STROBE=2, TRIGGER=3 — device codes).
-- `contract/components/device_descriptor.py`: `DeviceDescriptor`, the
-  discovery identity (optional fields stay optional: only a count is knowable
-  before opening).
 - `contract/components/controller_capabilities.py`: `ControllerCapabilities`,
   the open-reply payload where `requires_initialization` lives.
-- `contract/operations/{enumerate_devices, open_device, initialize,
-  configure_normal, set_active_mode, close_device}.py`: request and reply
-  models, one file per operation. All six confirmed complete on the contract
-  branch, uniform `<Op>Request` / `<Op>Ok` / `<Op>Reply` (discriminated on
-  `status`) pattern.
+- `contract/operations/{open_device, initialize, configure_normal,
+  set_active_mode, close_device}.py`: request and reply models, one file per
+  operation, uniform `<Op>Request` / `<Op>Ok` / `<Op>Reply` (discriminated on
+  `status`) pattern. `open_device` takes a serial target
+  (`port: str | None`), not a discovery index.
 
 Transport:
 
@@ -415,9 +414,8 @@ Client:
   parse the reply, and on an error reply map `error_type` to the exception to
   raise. Also owns the default backend binding and its narrow injection point
   (section 8).
-- `client/discovery.py`: the module-level `enumerate_devices` and
-  `open_device` functions (a new file; the skeleton does not include it).
-- `client/controller.py`: the `Controller` proxy.
+- `client/controller.py`: the module-level `open_device` function and the
+  `Controller` proxy it constructs.
 - `client/channel.py`: `Channel` proxy.
 - `mightex_slc/__init__.py`: the assembled public surface.
 
@@ -426,15 +424,15 @@ Client:
 ## 8. The in-process wiring (the backend binding)
 
 This is the piece most easily hand-waved, so it gets its own section. The
-question it answers: how does `enumerate_devices()`, a module-level function
-with no `device_id` yet, reach the server and the fake transport?
+question it answers: how does `open_device()`, a module-level function with no
+`device_id` yet, reach the server and the fake transport?
 
 For the slice, bind a single in-process server, itself bound to the fake
 transport, and give the client `link` a reference to it. The simplest honest
 form is a default backend that `link` calls, constructed once as an in-process
-server over the fake transport. `enumerate_devices()` then flows as
-`link.call("enumerate_devices", {})` into that server, which drives the fake
-and returns the reply.
+server over the fake transport. `open_device()` then flows as
+`link.call("open_device", {"port": None})` into that server, which opens the
+fake and returns the reply.
 
 Keep this binding behind one seam so the later swap is a wiring change only.
 Nothing in the contract or the client proxies should know whether the backend
@@ -492,9 +490,9 @@ Three distinct places, worth keeping straight:
   trust boundary. In-process with a well-behaved client this rarely fires, but
   it is the reason a future untrusted caller cannot bypass the contract.
 - **Device or execution failures.** These come back as an `Error` reply.
-  `link` maps `error_type` to the exception class. A bad open index becomes
-  `DeviceNotFoundError`; use of a `device_id` the session does not know
-  becomes `ControllerClosedError`.
+  `link` maps `error_type` to the exception class. An unanswering serial port
+  becomes `DeviceNotFoundError` (rs232 only — the fake cannot produce it); use
+  of a `device_id` the session does not know becomes `ControllerClosedError`.
 
 ---
 
@@ -523,9 +521,11 @@ Resolved 2026-07-04 (the former Phase 0 decisions):
 - **Fake `requires_initialization`** — `True`, so the acceptance run exercises
   `initialize()`. Not configurable until something actually needs a `False`
   device.
-- **Home for `enumerate_devices` and `open_device`** — a small
-  `client/discovery.py`; `controller.py` stays focused on the `Controller`
-  proxy.
+- **Home for `open_device`** — a module-level function in
+  `client/controller.py`, alongside the `Controller` it constructs; no
+  discovery module exists. (Superseded 2026-07-06: the original decision
+  placed `enumerate_devices` and `open_device` in a `client/discovery.py`,
+  but enumeration was removed when the API went serial-target-first.)
 - **Backend injection point** — a narrow injection/reset point in
   `client/link.py` over a lazily-created default backend (section 8); the same
   seam later carries the rs232 rebinding. No special-case branching.

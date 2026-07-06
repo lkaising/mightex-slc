@@ -77,14 +77,19 @@ build client, server, and transport beneath it. It lasted four days.
   device facts (an invented current resolution, a nonexistent trigger
   sub-mode). Adopted permanently; it is the provenance-tag system in these
   docs.
-- **The public API naming**, reused verbatim: `enumerate_devices`,
-  `open_device`, `Controller`, `Channel`, `configure_normal(current_max_ma,
-  current_set_ma)`, `set_active_mode`, `OperatingMode`.
+- **The public API naming**, reused verbatim: `open_device`, `Controller`,
+  `Channel`, `configure_normal(current_max_ma, current_set_ma)`,
+  `set_active_mode`, `OperatingMode`. (`enumerate_devices` was also carried
+  over initially, then removed 2026-07-06 when the API went
+  serial-target-first — the vendor's enumerate/open-by-index flow is
+  USB/HID-only, and this library is RS232-only.)
 - **The error model**: the `MightexLEDError` hierarchy and the `ErrorType`
   reply-to-exception mapping (`architecture.md` §4).
 - **The contract models themselves** — complete and well-made. The slice's
-  six operations, six components, and two bases are ported from
-  `contract/mightex_contract/`, not rewritten.
+  operations, components, and two bases are ported from
+  `contract/mightex_contract/`, not rewritten (the ported `enumerate_devices`
+  operation and `DeviceDescriptor` component were later removed, and
+  `open_device` reshaped, in the 2026-07-06 serial-target refactor).
 - **The cut list**: no message broker, no C++/DLL binding, no second
   validation layer. Settled; do not reopen those debates.
 - The working schema generator, as a reference implementation only.

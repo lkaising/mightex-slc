@@ -20,13 +20,11 @@ from dataclasses import dataclass, replace
 
 from ...contract import (
     ControllerCapabilities,
-    DeviceDescriptor,
     ModuleType,
     OperatingMode,
 )
 from ..base import (
     CommandRejectedError,
-    DeviceNotPresentError,
     InvalidHandleError,
     Transport,
     TransportError,
@@ -81,15 +79,13 @@ class FakeTransport(Transport):
         self._open_handle: TransportHandle | None = None
         self._initialized = False
 
-    def enumerate_devices(self) -> list[DeviceDescriptor]:
-        # Only the index is knowable before opening; details are never guessed.
-        return [DeviceDescriptor(index=0)]
-
-    def open_device(self, index: int) -> TransportOpenResult:
-        if index != 0:
-            raise DeviceNotPresentError(f"no device at index {index}")
+    def open_device(self, port: str | None = None) -> TransportOpenResult:
+        # port is accepted for interface compatibility and deliberately inert:
+        # the fake is the device at whichever port the caller targets (or the
+        # backend default when None). It does not model host serial-port
+        # availability, so opening with a path never proves that path exists.
         if self._open_handle is not None:
-            raise TransportError("device at index 0 is already open")
+            raise TransportError("device is already open")
         self._open_handle = TransportHandle()
         self._initialized = False  # PC-Mode entry is per-connection
         return TransportOpenResult(

@@ -61,9 +61,6 @@ from mightex_slc.contract import (  # noqa: E402
     ConfigureNormalReply,
     ConfigureNormalRequest,
     ControllerCapabilities,
-    DeviceDescriptor,
-    EnumerateDevicesReply,
-    EnumerateDevicesRequest,
     Error,
     ErrorType,
     InitializeReply,
@@ -84,7 +81,6 @@ HEADER = (
 )
 
 OPERATIONS: dict[str, tuple[Any, Any]] = {
-    "enumerate_devices": (EnumerateDevicesRequest, EnumerateDevicesReply),
     "open_device": (OpenDeviceRequest, OpenDeviceReply),
     "initialize": (InitializeRequest, InitializeReply),
     "configure_normal": (ConfigureNormalRequest, ConfigureNormalReply),
@@ -94,7 +90,6 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
 
 COMPONENTS: dict[str, Any] = {
     "controller_capabilities": ControllerCapabilities,
-    "device_descriptor": DeviceDescriptor,
     "error": Error,
     "error_type": ErrorType,
     "module_type": ModuleType,

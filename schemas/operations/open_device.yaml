@@ -3,14 +3,16 @@
 operation: open_device
 request:
   additionalProperties: false
-  description: Open a controller by discovery index.
+  description: Open the controller at a serial port.
   properties:
-    index:
-      description: Zero-based discovery index
-      minimum: 0
-      type: integer
-  required:
-  - index
+    port:
+      anyOf:
+      - minLength: 1
+        type: string
+      - type: 'null'
+      default: null
+      description: Serial port device path of the controller to open (e.g. /dev/cu.usbserial-A6002xyz);
+        None uses the backend's configured default target
   title: OpenDeviceRequest
   type: object
 reply:

@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 #  Filename: open_device.py
 #
-#  Purpose: Define request and reply models for opening a controller by index.
+#  Purpose: Define request and reply models for opening a controller.
 #
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
@@ -18,11 +18,16 @@ from ..components.error import Error
 
 
 class OpenDeviceRequest(ContractModel):
-    """Open a controller by discovery index."""
+    """Open the controller at a serial port."""
 
-    index: int = Field(
-        ge=0,
-        description="Zero-based discovery index"
+    port: str | None = Field(
+        default=None,
+        min_length=1,
+        description=(
+            "Serial port device path of the controller to open "
+            "(e.g. /dev/cu.usbserial-A6002xyz); None uses the backend's "
+            "configured default target"
+        ),
     )
 
 
