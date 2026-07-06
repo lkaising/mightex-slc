@@ -26,16 +26,22 @@ The acceptance example for the slice is the one fully-written file in the projec
 `../../examples/normal_mode_timed_on.py`. It doubles as the de facto public API
 specification.
 
-## Current state (verified 2026-07-04, post-Phase 1)
+## Current state (verified 2026-07-06, post-Phase 2)
 
 Phase 1 (the contract foundation) is complete: `src/mightex_slc/contract/`
 holds the slice's six operations, six components, and two base models as
 working Pydantic code, and `scripts/generate_schemas.py` generates the YAML
 schemas in `schemas/` (each shared shape is emitted once, in its component
 file, and cross-referenced — not inlined per file; rerun the generator after
-any contract-model change). Everything else under `src/` is still a
-header-only or docstring-only stub, the root `README.md` is still empty, and
-Phase 2 (the transport seam and fake) has not started. `phase_status.md` in
+any contract-model change). Phase 2 (the transport seam and fake) is complete:
+`src/mightex_slc/transport/base.py` defines the `Transport` interface the
+server will drive (the slice's six operations, an opaque handle, and the
+transport exception family), and `src/mightex_slc/transport/fake/` implements
+it as one in-memory SLC-MA04-MU with per-channel state and the device's real
+configure-then-activate semantics. The `server/`, `client/`, and
+`transport/rs232/` packages and the root `__init__.py` are still header-only
+or docstring-only stubs, the root `README.md` is still empty, and Phase 3
+(the `enumerate_devices` tracer bullet) has not started. `phase_status.md` in
 this folder tracks per-phase progress.
 
 ## The documents

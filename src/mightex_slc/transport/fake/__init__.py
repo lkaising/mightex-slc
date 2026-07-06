@@ -13,3 +13,10 @@ Home of the pure-Python simulated device that implements the transport interface
 with no hardware attached. It lets the client, server, and contract run end to
 end before any real controller is in the loop.
 """
+
+from .fake_transport import FakeChannelState, FakeTransport
+
+__all__ = [
+    "FakeChannelState",
+    "FakeTransport",
+]

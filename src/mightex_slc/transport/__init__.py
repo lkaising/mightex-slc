@@ -16,3 +16,23 @@ controller by changing one line. Beyond marking the package, this module is the
 natural home for a small factory that returns the chosen backend, so the server
 asks for a transport without hard-coding which one.
 """
+
+from .base import (
+    CommandRejectedError,
+    DeviceNotPresentError,
+    InvalidHandleError,
+    Transport,
+    TransportError,
+    TransportHandle,
+    TransportOpenResult,
+)
+
+__all__ = [
+    "CommandRejectedError",
+    "DeviceNotPresentError",
+    "InvalidHandleError",
+    "Transport",
+    "TransportError",
+    "TransportHandle",
+    "TransportOpenResult",
+]
