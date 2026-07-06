@@ -245,18 +245,18 @@ def _write(path: Path, payload: dict) -> None:
     path.write_text(HEADER + body)
 
 
-def main() -> None:
+def main(schemas_dir: Path = SCHEMAS_DIR) -> None:
     for name, component in COMPONENTS.items():
         schema = _externalize_shared(_schema(component), prefix="./")
-        _write(SCHEMAS_DIR / "components" / f"{name}.yaml", schema)
+        _write(schemas_dir / "components" / f"{name}.yaml", schema)
     for name, (request, reply) in OPERATIONS.items():
         request_schema = _externalize_shared(_schema(request), prefix="../components/")
         reply_schema = _externalize_shared(_schema(reply), prefix="../components/")
         _write(
-            SCHEMAS_DIR / "operations" / f"{name}.yaml",
+            schemas_dir / "operations" / f"{name}.yaml",
             {"operation": name, "request": request_schema, "reply": reply_schema},
         )
-    print(f"Wrote {len(COMPONENTS) + len(OPERATIONS)} schema files under {SCHEMAS_DIR}")
+    print(f"Wrote {len(COMPONENTS) + len(OPERATIONS)} schema files under {schemas_dir}")
 
 
 if __name__ == "__main__":
