@@ -3,7 +3,7 @@
 operation: set_active_mode
 request:
   additionalProperties: false
-  description: Select the active working mode for a channel.
+  description: Switch a channel to an active working mode.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -14,7 +14,7 @@ request:
       type: integer
     mode:
       $ref: ../components/operating_mode.yaml
-      description: The mode to make active
+      description: Working mode to select
   required:
   - device_id
   - channel
@@ -25,7 +25,7 @@ reply:
   $defs:
     SetActiveModeOk:
       additionalProperties: false
-      description: Successful set-active-mode reply.
+      description: Active mode changed successfully.
       properties:
         status:
           const: ok

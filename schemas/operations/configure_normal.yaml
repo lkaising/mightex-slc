@@ -3,8 +3,7 @@
 operation: configure_normal
 request:
   additionalProperties: false
-  description: 'Store NORMAL mode parameters for a channel. Runtime-only rule (does
-    not export to JSON Schema): current_set_ma must not exceed current_max_ma.'
+  description: Set NORMAL-mode current parameters for a channel.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -14,11 +13,11 @@ request:
       minimum: 1
       type: integer
     current_max_ma:
-      description: Maximum current in milliamps
+      description: NORMAL-mode current limit, in mA
       minimum: 0
       type: number
     current_set_ma:
-      description: Working current in milliamps
+      description: NORMAL-mode set current, in mA
       minimum: 0
       type: number
   required:
@@ -32,7 +31,7 @@ reply:
   $defs:
     ConfigureNormalOk:
       additionalProperties: false
-      description: Successful configure-normal reply.
+      description: Configure-normal succeeded.
       properties:
         status:
           const: ok

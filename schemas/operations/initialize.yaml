@@ -3,7 +3,7 @@
 operation: initialize
 request:
   additionalProperties: false
-  description: Prepare the controller for host control.
+  description: Put an opened controller into host-control mode.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -16,7 +16,7 @@ reply:
   $defs:
     InitializeOk:
       additionalProperties: false
-      description: Successful initialize reply.
+      description: Controller initialized for host control.
       properties:
         status:
           const: ok

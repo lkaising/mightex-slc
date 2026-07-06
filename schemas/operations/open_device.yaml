@@ -3,10 +3,10 @@
 operation: open_device
 request:
   additionalProperties: false
-  description: Open the controller at a discovery index.
+  description: Open a controller by discovery index.
   properties:
     index:
-      description: Zero-based device index from a descriptor
+      description: Zero-based discovery index
       minimum: 0
       type: integer
   required:
@@ -17,23 +17,21 @@ reply:
   $defs:
     OpenDeviceOk:
       additionalProperties: false
-      description: Successful open reply. Returns the full capabilities so the client
-        has channel_count immediately (for example to bounds-check channel access)
-        without a second round-trip.
+      description: Controller opened successfully.
       properties:
         status:
           const: ok
           default: ok
           type: string
         device_id:
-          description: Handle for subsequent operations
+          description: Opaque device id for subsequent operations
           type: string
         serial_number:
           description: Serial number of the opened controller
           type: string
         capabilities:
           $ref: ../components/controller_capabilities.yaml
-          description: Read-only capabilities of the opened controller
+          description: Capabilities of the opened controller
       required:
       - device_id
       - serial_number

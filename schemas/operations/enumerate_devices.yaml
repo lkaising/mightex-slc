@@ -3,7 +3,7 @@
 operation: enumerate_devices
 request:
   additionalProperties: false
-  description: Request to scan for connected controllers. Carries no fields.
+  description: Scan for connected USB controllers.
   properties: {}
   title: EnumerateDevicesRequest
   type: object
@@ -11,14 +11,14 @@ reply:
   $defs:
     EnumerateDevicesOk:
       additionalProperties: false
-      description: Successful discovery reply.
+      description: Device discovery succeeded.
       properties:
         status:
           const: ok
           default: ok
           type: string
         result:
-          description: One descriptor per connected controller, in index order
+          description: Discovered USB controllers, ordered by zero-based device index
           items:
             $ref: ../components/device_descriptor.yaml
           type: array

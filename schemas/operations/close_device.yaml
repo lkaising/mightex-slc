@@ -3,7 +3,7 @@
 operation: close_device
 request:
   additionalProperties: false
-  description: Close the controller handle and release it.
+  description: Close an opened controller.
   properties:
     device_id:
       description: Handle returned by open_device
@@ -16,7 +16,7 @@ reply:
   $defs:
     CloseDeviceOk:
       additionalProperties: false
-      description: Successful close reply.
+      description: Controller closed successfully.
       properties:
         status:
           const: ok
