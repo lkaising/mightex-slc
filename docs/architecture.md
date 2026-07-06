@@ -20,9 +20,8 @@ A Python library for Mightex SLC LED controllers with three properties:
    shared Pydantic models. Kept honest even in-process, so a later daemon
    (the deferred fix for single-owner serial ports) is a wiring change, not a
    contract change.
-3. **Fake-first testability.** The whole stack runs and is tested against an
-   in-memory fake device. Hardware is required only to validate the RS232
-   backend itself.
+3. **Fake-first development.** The whole stack runs against an in-memory fake
+   device. Hardware is required only to validate the RS232 backend itself.
 
 And one working method: **slices, not layers-in-full.** Build the smallest
 complete vertical through every layer, get it green, then repeat the proven
@@ -76,7 +75,7 @@ the one backend binding inside `link`. That keeps the seam a real boundary.
 
 ## 3. The public API surface
 
-Fixed by `examples/normal_mode_timed_on.py` (the acceptance test) and the
+Fixed by `examples/normal_mode_timed_on.py` (the acceptance example) and the
 polished naming from the contract branch's API skeleton. For the slice:
 
 ```python
@@ -152,7 +151,7 @@ semantics in `device_and_protocol.md` §7:
 - Reports capabilities on open; `requires_initialization=True` so the
   example's `initialize()` branch actually executes in integration runs.
 
-Tests assert against the fake's end state (stored params match, mode is
+The acceptance run checks the fake's end state (stored params match, mode is
 DISABLE after the `finally`), which is how the slice proves device semantics
 without hardware.
 
@@ -206,8 +205,8 @@ retries, no port auto-discovery.
   uses the identical ASCII command set, so raw serial loses nothing.
 - **No second validation layer.** Pydantic models are the only validator at
   the seam; hand-written jsonschema checks would drift.
-- **No schema-artifact ecosystem.** `schemas/` YAML is generated documentation
-  with a staleness test — nothing more. No consumers, no post-hoc refactoring
+- **No schema-artifact ecosystem.** `schemas/` YAML is generated documentation,
+  kept current by rerunning the generator — nothing more. No consumers, no post-hoc refactoring
   projects, no audits of generated output (see `lineage.md` for the cautionary
   tale). The generator itself cross-references shared shapes instead of
   inlining copies — an implementation detail of the generator, not an

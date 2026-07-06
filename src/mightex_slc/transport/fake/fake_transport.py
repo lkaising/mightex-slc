@@ -10,6 +10,6 @@
 A pure-Python simulated controller implementing the transport interface.
 
 It responds the way a device would, with no hardware attached. This is what the
-integration test runs against, and what lets the client, server, and contract be
-exercised end to end before any real controller is connected.
+acceptance example runs against, and what lets the client, server, and contract
+be exercised end to end before any real controller is connected.
 """

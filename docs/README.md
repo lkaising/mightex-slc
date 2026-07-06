@@ -13,7 +13,7 @@ multi-channel LED controllers. The library presents a clean, transport-neutral
 public API (`enumerate_devices()`, `open_device()`, `Controller`, `Channel`),
 validates every call at a contract seam built from shared Pydantic models, and
 drives the device through a swappable transport layer — an in-memory fake for
-development and testing, and an RS232 backend for real hardware.
+hardware-free development, and an RS232 backend for real hardware.
 
 Development is **slice-driven**: instead of building the whole library at once
 (the mistake that killed the previous attempt), we build one narrow vertical
@@ -22,22 +22,21 @@ current slice is **`normal_mode_timed_on`**: enumerate, open, initialize,
 configure a channel's NORMAL-mode current, switch the channel on, wait
 host-side, switch it off, close — all against the fake transport, no hardware.
 
-The acceptance test for the slice is the one fully-written file in the project:
+The acceptance example for the slice is the one fully-written file in the project:
 `../../examples/normal_mode_timed_on.py`. It doubles as the de facto public API
 specification.
 
 ## Current state (verified 2026-07-04, post-Phase 1)
 
-Phase 1 (the contract foundation) is complete under a revised Phase 1 /
-Phase 1.5 split: `src/mightex_slc/contract/` holds the slice's six
-operations, six components, and two base models as working Pydantic code,
-and `scripts/generate_schemas.py` generates the YAML schemas in `schemas/`
-(each shared shape is emitted once, in its component file, and
-cross-referenced — not inlined per file). Formal contract tests and the
-schema staleness test are deferred to Phase 1.5. Everything else under
-`src/` is still a header-only or docstring-only stub, the root `README.md`
-is still empty, and Phase 2 (the transport seam and fake) has not started.
-`phase_status.md` in this folder tracks per-phase progress.
+Phase 1 (the contract foundation) is complete: `src/mightex_slc/contract/`
+holds the slice's six operations, six components, and two base models as
+working Pydantic code, and `scripts/generate_schemas.py` generates the YAML
+schemas in `schemas/` (each shared shape is emitted once, in its component
+file, and cross-referenced — not inlined per file; rerun the generator after
+any contract-model change). Everything else under `src/` is still a
+header-only or docstring-only stub, the root `README.md` is still empty, and
+Phase 2 (the transport seam and fake) has not started. `phase_status.md` in
+this folder tracks per-phase progress.
 
 ## The documents
 

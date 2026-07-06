@@ -21,7 +21,9 @@ Corrections from the draft, in one place (details inline below):
   using the contract branch's working `contract/generate_schemas.py` as the
   reference.
 - The "staleness check" the draft says to confirm **does not exist anywhere**
-  and never did — it must be written as a test.
+  and never did. Schema drift is covered by the working discipline of rerunning
+  `scripts/generate_schemas.py` after any contract-model change (its built-in
+  consistency check runs on every generation).
 - The §11 open decision on `close_device.py`'s shape is **resolved**: the
   contract-branch file follows the uniform Request/Ok/Reply pattern, as hoped.
 - Wire enum values are now pinned by three independent sources (vendor docs,
@@ -66,7 +68,7 @@ is proven and the rest of the library is a matter of repeating the pattern.
 
 What exists: the `src/mightex_slc/` package tree is laid out across `client`,
 `contract`, `server`, and `transport`, plus `scripts/generate_schemas.py`,
-`schemas/`, and `tests/`. Every file carries a header; client/server/transport
+and `schemas/`. Every file carries a header; client/server/transport
 files also carry intent docstrings. **No file contains executable code.**
 
 Five gaps stood between the original skeleton and the full slice. **They were
@@ -77,7 +79,7 @@ package-root items; the contract and schema items remain open for Phase 1:
 - **`pyproject.toml` was empty (0 bytes) and had to be authored** — closed in
   Phase 0, as decided: **Hatchling** is the build backend, and the file
   declares the project name, the `pydantic` dependency, a `dev` extra
-  (`pytest`, `ruff`, `pyyaml` for the generator), and the `src/` layout so an
+  (`ruff`, and `pyyaml` for the generator), and the `src/` layout so an
   editable install finds `mightex_slc`. The
   baseline workflow is plain pip in a standard environment —
   `python -m pip install -e ".[dev]"` — portable between pyenv-virtualenv on
@@ -97,15 +99,15 @@ package-root items; the contract and schema items remain open for Phase 1:
   import `from mightex_contract...`; rewrite every intra-contract import as a
   relative import (`from ..base import ContractModel`), which survives future
   renames.
-- **The schema generator must be written** (Phase 1, along with running it and
-  adding the staleness test). Reference implementation:
+- **The schema generator must be written** (Phase 1, along with running it).
+  Reference implementation:
   `~/Developer/Projects/mightex-slc/contract/generate_schemas.py` (complete and
   working — field-title suppression, one-line descriptions, deterministic YAML,
   generated-file headers). The new one lives at `scripts/generate_schemas.py`
   (outside `src/`, correctly out of the shipped wheel), covers only the slice's
   models, writes to the top-level `schemas/`, and stamps the new path in its
-  headers. The staleness check (regenerate-and-diff) must be written as a test;
-  the old branch never had one.
+  headers. Keeping `schemas/` current is a working discipline: rerun the
+  generator after any contract-model change.
 - **The example lives outside the project** (`mightex/examples/`, a sibling of
   `mightex-slc/`). Running it requires the package installed editable
   (`python -m pip install -e ".[dev]"` from inside `mightex-slc/`). A standing
@@ -116,7 +118,7 @@ package-root items; the contract and schema items remain open for Phase 1:
 ## 3. Guiding principles for this slice
 
 **Tracer bullet before breadth.** Build one operation (`enumerate_devices`) all
-the way through every layer and get a green round-trip test before writing the
+the way through every layer and get a green round-trip run before writing the
 other five. This front-loads the seam risk and turns the remaining operations
 into mechanical repetition of a known-good shape.
 
@@ -229,8 +231,8 @@ Packaging, package root, and docs tracking — nothing else. Done:
   those are Phase 5.
 - Added `docs/phase_status.md`, a lightweight per-phase progress ledger.
 
-The other §2 gaps — contract model porting, the schema generator, generating
-the schemas, and the staleness test — are **Phase 1 work**, not Phase 0.
+The other §2 gaps — contract model porting, the schema generator, and
+generating the schemas — are **Phase 1 work**, not Phase 0.
 `normal_parameters.py` is a header-only stub — leave it empty; that satisfies
 "the contract tree matches the slice's real import closure."
 
@@ -249,9 +251,10 @@ all 18 operations (its `operations/__init__.py` is 175 lines); copying them
 verbatim is the single most likely first-import failure.
 
 Then write `scripts/generate_schemas.py` (reference: the branch's working
-generator), generate the slice's schemas into `schemas/`, and add the
-staleness test (regenerate, diff, fail on drift). Doing this now locks the
-contract shape before anything is built on top of it.
+generator) and generate the slice's schemas into `schemas/`. Doing this now
+locks the contract shape before anything is built on top of it. From here on,
+rerun the generator after any contract-model change so `schemas/` never
+drifts.
 
 Phase 1 investigation item (recorded, deliberately unresolved): the contract
 branch keeps `NormalParameters` read-path only (reached through its
@@ -263,8 +266,11 @@ shape. Until decided, `normal_parameters.py` stays an empty stub.
 
 Gate to pass before moving on: `import mightex_slc.contract` succeeds; a valid
 request model for each of the six operations constructs, dumps to JSON, and
-re-validates; an invalid one is rejected (see Phase 6 for the cases). This is a
-pure-contract checkpoint with no transport, server, or client in the picture.
+re-validates; an invalid one is rejected. Concrete invalid cases worth
+checking: `configure_normal` with `current_set_ma` above `current_max_ma`, a
+negative current, a channel number below one, and a missing `device_id`. This
+is a pure-contract checkpoint with no transport, server, or client in the
+picture, verified by a throwaway script or REPL session.
 
 ### Phase 2: transport seam and fake
 
@@ -293,10 +299,11 @@ calls the server entry point; the server validates, routes to a handler, asks
 the fake transport for present devices, and returns `EnumerateDevicesOk` with
 the descriptors; the client parses the reply and returns the descriptor list.
 
-Write one integration test that calls the client function and asserts it
-returns a non-empty descriptor list from the fake. When this passes, the seam
-mechanics are proven: model build, JSON dump, dispatch, validate, route,
-transport call, reply model, parse. Everything after this is repetition.
+Prove it with a throwaway script (or REPL session) that calls the client
+function and confirms it returns a non-empty descriptor list from the fake.
+When this passes, the seam mechanics are proven: model build, JSON dump,
+dispatch, validate, route, transport call, reply model, parse. Everything
+after this is repetition.
 
 `enumerate_devices` is deliberately first because it carries no `device_id`
 and no channel, so it proves the seam without also needing the session and the
@@ -314,7 +321,7 @@ removes it from the session.
 
 Gate to pass: each of the six operations round-trips against the fake in
 isolation. No public proxy layer is required yet; these can be driven directly
-through `link` in tests.
+through `link` in a throwaway script.
 
 ### Phase 5: public surface
 
@@ -341,22 +348,16 @@ Now add the ergonomic layer the example actually calls:
   `Controller`, `Channel`, `OperatingMode`, `DeviceDescriptor`, and the
   exception classes.
 
-### Phase 6: tests and run the example
+### Phase 6: acceptance — run the example
 
-Contract model tests (`tests/contract/`): for each of the six operations, a
-valid request round-trips and an invalid one is rejected. Concrete invalid
-cases worth covering: `configure_normal` with `current_set_ma` above
-`current_max_ma`, a negative current, a channel number below one, and a
-missing `device_id`. Reply models parse both the ok and error variants.
+Run `examples/normal_mode_timed_on.py` against the editable install and
+confirm it completes cleanly: no leaked exception, and the fake left in the
+expected end state (the channel's stored normal params match what was set,
+and the active mode is `DISABLE` after the `finally`).
 
-Integration test (`tests/integration/`): drive the full nine-step example
-sequence through the public client API against the fake, then assert the
-fake's end state (the channel's stored normal params match what was set, and
-the active mode is `DISABLE` after the `finally`). Add at least one error-path
-assertion, for example opening a bad index raises `DeviceNotFoundError`.
-
-Finally, run `examples/normal_mode_timed_on.py` against the editable install
-and confirm it completes cleanly.
+Also confirm one error path by hand (throwaway script or REPL): opening a bad
+index raises `DeviceNotFoundError`. This proves the error-reply mapping in
+`link`, which the happy-path example never exercises.
 
 ---
 
@@ -441,13 +442,12 @@ is an in-process server over a fake, an in-process server over rs232, or a
 socket to a daemon. When rs232 arrives, only the transport the server is bound
 to changes.
 
-Test isolation (decided): `link` creates the default backend lazily on first
-use and exposes one narrow injection/reset point that replaces it (e.g.
-`link.use_backend(...)`). A pytest fixture installs a fresh in-process server
-over a fresh fake for each test and restores the default afterward. That is
-the whole mechanism — no test-only branching in production code. Unit tests of
-server internals need none of this; they can construct a server over a fake
-directly and skip `link` entirely.
+Backend injection (decided): `link` creates the default backend lazily on
+first use and exposes one narrow injection/reset point that replaces it (e.g.
+`link.use_backend(...)`). That is the whole mechanism — no special-case
+branching in production code. It is the same seam through which the rs232
+backend (or a socket to a daemon) is later installed, so it earns its place
+regardless of how the slice is verified.
 
 ---
 
@@ -521,14 +521,14 @@ Resolved 2026-07-04 (the former Phase 0 decisions):
   macOS and a plain `venv` on the eventual Ubuntu hardware machine. uv stays
   optional, never required; `.python-version` keeps its pyenv meaning.
 - **Fake `requires_initialization`** — `True`, so the acceptance run exercises
-  `initialize()`. Not configurable until a test actually needs a `False`
+  `initialize()`. Not configurable until something actually needs a `False`
   device.
 - **Home for `enumerate_devices` and `open_device`** — a small
   `client/discovery.py`; `controller.py` stays focused on the `Controller`
   proxy.
-- **Test isolation for the backend binding** — a narrow injection/reset point
-  in `client/link.py` over a lazily-created default backend; tests install a
-  fresh server-over-fake per test (section 8). No test-only branching.
+- **Backend injection point** — a narrow injection/reset point in
+  `client/link.py` over a lazily-created default backend (section 8); the same
+  seam later carries the rs232 rebinding. No special-case branching.
 - **Python floor** — `requires-python = ">=3.11"`, set in Phase 0. The active
   pyenv virtualenv and the verified examples environment both run Python
   3.11.13; no older interpreter is in the picture.
