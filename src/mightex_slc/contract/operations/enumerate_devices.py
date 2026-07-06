@@ -18,15 +18,15 @@ from ..components.error import Error
 
 
 class EnumerateDevicesRequest(ContractModel):
-    """Request to scan for connected controllers. Carries no fields."""
+    """Scan for connected USB controllers."""
 
 
 class EnumerateDevicesOk(ContractModel):
-    """Successful discovery reply."""
+    """Device discovery succeeded."""
 
     status: Literal["ok"] = "ok"
     result: list[DeviceDescriptor] = Field(
-        description="One descriptor per connected controller, in index order"
+        description="Discovered USB controllers, ordered by zero-based device index"
     )
 
 

@@ -18,13 +18,15 @@ from .base import DeviceRequest
 
 
 class CloseDeviceRequest(DeviceRequest):
-    """Close the controller handle and release it."""
+    """Close an opened controller."""
 
 
 class CloseDeviceOk(ContractModel):
-    """Successful close reply."""
+    """Controller closed successfully."""
 
     status: Literal["ok"] = "ok"
 
 
-CloseDeviceReply = Annotated[Union[CloseDeviceOk, Error], Field(discriminator="status")]
+CloseDeviceReply = Annotated[
+    Union[CloseDeviceOk, Error], Field(discriminator="status")
+]

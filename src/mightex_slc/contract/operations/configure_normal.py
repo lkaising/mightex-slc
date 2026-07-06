@@ -18,24 +18,26 @@ from .base import ChannelRequest
 
 
 class ConfigureNormalRequest(ChannelRequest):
-    """Store NORMAL mode parameters for a channel.
+    """Set NORMAL-mode current parameters for a channel."""
 
-    Runtime-only rule (does not export to JSON Schema): current_set_ma must
-    not exceed current_max_ma.
-    """
-
-    current_max_ma: float = Field(ge=0, description="Maximum current in milliamps")
-    current_set_ma: float = Field(ge=0, description="Working current in milliamps")
+    current_max_ma: float = Field(
+        ge=0,
+        description="NORMAL-mode current limit, in mA",
+    )
+    current_set_ma: float = Field(
+        ge=0,
+        description="NORMAL-mode set current, in mA",
+    )
 
     @model_validator(mode="after")
     def _set_not_above_max(self) -> "ConfigureNormalRequest":
         if self.current_set_ma > self.current_max_ma:
-            raise ValueError("current_set_ma must not exceed current_max_ma")
+            raise ValueError("current_set_ma must be less than or equal to current_max_ma")
         return self
 
 
 class ConfigureNormalOk(ContractModel):
-    """Successful configure-normal reply."""
+    """Configure-normal succeeded."""
 
     status: Literal["ok"] = "ok"
 

@@ -23,10 +23,7 @@ class Error(ContractModel):
     the controller reports one.
     """
 
-    status: Literal["error"] = Field(
-        default="error",
-        description="Discriminator for error replies.",
-    )
+    status: Literal["error"] = "error"
     error_type: ErrorType = Field(
         description="Concrete error type to raise on the client.",
     )

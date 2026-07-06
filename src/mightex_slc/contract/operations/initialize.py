@@ -18,13 +18,15 @@ from .base import DeviceRequest
 
 
 class InitializeRequest(DeviceRequest):
-    """Prepare the controller for host control."""
+    """Put an opened controller into host-control mode."""
 
 
 class InitializeOk(ContractModel):
-    """Successful initialize reply."""
+    """Controller initialized for host control."""
 
     status: Literal["ok"] = "ok"
 
 
-InitializeReply = Annotated[Union[InitializeOk, Error], Field(discriminator="status")]
+InitializeReply = Annotated[
+    Union[InitializeOk, Error], Field(discriminator="status")
+]

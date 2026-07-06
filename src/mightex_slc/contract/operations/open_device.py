@@ -18,24 +18,29 @@ from ..components.error import Error
 
 
 class OpenDeviceRequest(ContractModel):
-    """Open the controller at a discovery index."""
+    """Open a controller by discovery index."""
 
-    index: int = Field(ge=0, description="Zero-based device index from a descriptor")
-
-
-class OpenDeviceOk(ContractModel):
-    """Successful open reply.
-
-    Returns the full capabilities so the client has channel_count immediately
-    (for example to bounds-check channel access) without a second round-trip.
-    """
-
-    status: Literal["ok"] = "ok"
-    device_id: str = Field(description="Handle for subsequent operations")
-    serial_number: str = Field(description="Serial number of the opened controller")
-    capabilities: ControllerCapabilities = Field(
-        description="Read-only capabilities of the opened controller"
+    index: int = Field(
+        ge=0,
+        description="Zero-based discovery index"
     )
 
 
-OpenDeviceReply = Annotated[Union[OpenDeviceOk, Error], Field(discriminator="status")]
+class OpenDeviceOk(ContractModel):
+    """Controller opened successfully."""
+
+    status: Literal["ok"] = "ok"
+    device_id: str = Field(
+        description="Opaque device id for subsequent operations"
+    )
+    serial_number: str = Field(
+        description="Serial number of the opened controller"
+    )
+    capabilities: ControllerCapabilities = Field(
+        description="Capabilities of the opened controller"
+    )
+
+
+OpenDeviceReply = Annotated[
+    Union[OpenDeviceOk, Error], Field(discriminator="status")
+]

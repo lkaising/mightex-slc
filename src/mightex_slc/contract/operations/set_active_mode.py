@@ -19,13 +19,15 @@ from .base import ChannelRequest
 
 
 class SetActiveModeRequest(ChannelRequest):
-    """Select the active working mode for a channel."""
+    """Switch a channel to an active working mode."""
 
-    mode: OperatingMode = Field(description="The mode to make active")
+    mode: OperatingMode = Field(
+        description="Working mode to select"
+    )
 
 
 class SetActiveModeOk(ContractModel):
-    """Successful set-active-mode reply."""
+    """Active mode changed successfully."""
 
     status: Literal["ok"] = "ok"
 
