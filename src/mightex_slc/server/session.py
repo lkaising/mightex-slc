@@ -53,15 +53,11 @@ class Session:
         try:
             return self._models[device_id]
         except KeyError:
-            raise UnknownDeviceError(
-                f"unknown or closed device_id: {device_id!r}"
-            ) from None
+            raise UnknownDeviceError(f"unknown or closed device_id: {device_id!r}") from None
 
     def pop(self, device_id: str) -> ControllerModel:
         """Remove and return the live controller model for a device_id."""
         try:
             return self._models.pop(device_id)
         except KeyError:
-            raise UnknownDeviceError(
-                f"unknown or closed device_id: {device_id!r}"
-            ) from None
+            raise UnknownDeviceError(f"unknown or closed device_id: {device_id!r}") from None

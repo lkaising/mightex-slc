@@ -32,9 +32,7 @@ class ConfigureNormalRequest(ChannelRequest):
     @model_validator(mode="after")
     def _set_not_above_max(self) -> "ConfigureNormalRequest":
         if self.current_set_ma > self.current_max_ma:
-            raise ValueError(
-                "current_set_ma must be less than or equal to current_max_ma"
-            )
+            raise ValueError("current_set_ma must be less than or equal to current_max_ma")
         return self
 
 
@@ -44,6 +42,4 @@ class ConfigureNormalOk(ContractModel):
     status: Literal["ok"] = "ok"
 
 
-ConfigureNormalReply = Annotated[
-    Union[ConfigureNormalOk, Error], Field(discriminator="status")
-]
+ConfigureNormalReply = Annotated[Union[ConfigureNormalOk, Error], Field(discriminator="status")]

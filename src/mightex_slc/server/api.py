@@ -34,6 +34,4 @@ class Server:
 
     def handle(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Run one serialized request and return its JSON-mode reply dict."""
-        return dispatch(
-            operation, payload, session=self._session, transport=self._transport
-        )
+        return dispatch(operation, payload, session=self._session, transport=self._transport)

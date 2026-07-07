@@ -39,18 +39,11 @@ class ChannelModel:
 
     def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
         """Store NORMAL-mode parameters for this channel; output unchanged."""
-        self._transport.configure_normal(
-            self._handle, self._number, current_max_ma, current_set_ma
-        )
+        self._transport.configure_normal(self._handle, self._number, current_max_ma, current_set_ma)
 
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Make a mode active on this channel, effective immediately."""
-        if (
-            mode is OperatingMode.TRIGGER
-            and not self._capabilities.supports_trigger_mode
-        ):
+        if mode is OperatingMode.TRIGGER and not self._capabilities.supports_trigger_mode:
             family = self._capabilities.module_type.name
-            raise CommandRejectedError(
-                f"TRIGGER mode is not available on {family} modules"
-            )
+            raise CommandRejectedError(f"TRIGGER mode is not available on {family} modules")
         self._transport.set_active_mode(self._handle, self._number, mode)

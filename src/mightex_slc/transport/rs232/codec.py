@@ -72,8 +72,7 @@ def format_current_ma(value: float) -> str:
     value = float(value)
     if not value.is_integer():
         raise CommandRejectedError(
-            f"current {value!r} mA is not a whole-mA value; "
-            "this backend sends integer mA"
+            f"current {value!r} mA is not a whole-mA value; this backend sends integer mA"
         )
     return str(int(value))
 
@@ -120,13 +119,9 @@ def check_response(response: str, command: str) -> str:
             f"device reported an execution error for {command!r}: {response!r}"
         )
     if response.startswith("#?"):
-        raise CommandRejectedError(
-            f"device rejected an argument of {command!r}: {response!r}"
-        )
+        raise CommandRejectedError(f"device rejected an argument of {command!r}: {response!r}")
     if "is not defined" in response:
-        raise CommandRejectedError(
-            f"device does not know the command {command!r}: {response!r}"
-        )
+        raise CommandRejectedError(f"device does not know the command {command!r}: {response!r}")
     return response
 
 
@@ -153,9 +148,7 @@ def parse_mode(response: str) -> OperatingMode:
     try:
         return OperatingMode(int(text))
     except ValueError:
-        raise TransportError(
-            f"cannot parse an operating mode from {response!r}"
-        ) from None
+        raise TransportError(f"cannot parse an operating mode from {response!r}") from None
 
 
 def parse_current(response: str) -> tuple[float, float]:
@@ -174,9 +167,7 @@ def parse_current(response: str) -> tuple[float, float]:
         # is a corrupt reply, not a current.
         return float(int(tokens[-2])), float(int(tokens[-1]))
     except ValueError:
-        raise TransportError(
-            f"cannot parse NORMAL parameters from {response!r}"
-        ) from None
+        raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
 
 
 def _token_after(response: str, keyword: str) -> str | None:
@@ -264,9 +255,7 @@ def capabilities_for_module(module_number: str | None) -> ControllerCapabilities
         )
     channel_count = int(channel_text)
     if channel_count < 1:
-        raise TransportError(
-            f"implausible channel count {channel_count} in {module_number!r}"
-        )
+        raise TransportError(f"implausible channel count {channel_count} in {module_number!r}")
     resolution_ma, profile_steps, trigger, load_voltage, fan = row
     # FanPWM hardware exists only on the -MU knob variants of MA/CA.
     fan = fan and "-MU" in normalized

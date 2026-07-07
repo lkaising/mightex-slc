@@ -102,9 +102,7 @@ class Transport(ABC):
         refuses the arguments."""
 
     @abstractmethod
-    def set_active_mode(
-        self, handle: TransportHandle, channel: int, mode: OperatingMode
-    ) -> None:
+    def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         """Make a mode active on a one-based channel, effective immediately.
         This is the only operation that changes output; raises
         CommandRejectedError when the device refuses the channel or mode."""

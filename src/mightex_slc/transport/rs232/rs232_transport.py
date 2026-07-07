@@ -87,9 +87,7 @@ class RS232Transport(Transport):
             raise TransportError("device is already open")
         target = port or self._default_port
         if target is None:
-            raise TransportError(
-                "no serial port specified and no default port configured"
-            )
+            raise TransportError("no serial port specified and no default port configured")
         try:
             ser = self._serial_factory(
                 port=target,
@@ -108,17 +106,13 @@ class RS232Transport(Transport):
             self._exchange(ser, codec.ECHO_OFF_COMMAND, require_response=False)
             # DEVICEINFO identifies the device and doubles as the presence
             # probe: an open tty proves nothing about a controller answering.
-            text = self._exchange(
-                ser, codec.DEVICE_INFO_COMMAND, require_response=False
-            )
+            text = self._exchange(ser, codec.DEVICE_INFO_COMMAND, require_response=False)
             if not text:
                 raise DeviceNotPresentError(f"no response to DEVICEINFO at {target}")
             codec.check_response(text, codec.DEVICE_INFO_COMMAND)
             info = codec.parse_device_info(text)
             if info.module_number is None or info.serial_number is None:
-                raise TransportError(
-                    f"DEVICEINFO did not identify the device: {text!r}"
-                )
+                raise TransportError(f"DEVICEINFO did not identify the device: {text!r}")
             capabilities = codec.capabilities_for_module(info.module_number)
         except BaseException:
             # Never leak a half-open port; the close is best-effort.
@@ -145,9 +139,7 @@ class RS232Transport(Transport):
         command = codec.encode_normal(channel, current_max_ma, current_set_ma)
         self._command_ack(ser, command)
 
-    def set_active_mode(
-        self, handle: TransportHandle, channel: int, mode: OperatingMode
-    ) -> None:
+    def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         ser = self._require_open(handle)
         self._command_ack(ser, codec.encode_mode(channel, mode))
 

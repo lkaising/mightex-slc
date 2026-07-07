@@ -30,6 +30,4 @@ class SetActiveModeOk(ContractModel):
     status: Literal["ok"] = "ok"
 
 
-SetActiveModeReply = Annotated[
-    Union[SetActiveModeOk, Error], Field(discriminator="status")
-]
+SetActiveModeReply = Annotated[Union[SetActiveModeOk, Error], Field(discriminator="status")]

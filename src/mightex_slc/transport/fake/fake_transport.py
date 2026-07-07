@@ -72,9 +72,7 @@ class FakeTransport(Transport):
     """
 
     def __init__(self) -> None:
-        self._channels = [
-            FakeChannelState() for _ in range(FAKE_CAPABILITIES.channel_count)
-        ]
+        self._channels = [FakeChannelState() for _ in range(FAKE_CAPABILITIES.channel_count)]
         self._open_handle: TransportHandle | None = None
 
     def open_device(self, port: str | None = None) -> TransportOpenResult:
@@ -108,9 +106,7 @@ class FakeTransport(Transport):
         state.normal_current_max_ma = current_max_ma
         state.normal_current_set_ma = current_set_ma
 
-    def set_active_mode(
-        self, handle: TransportHandle, channel: int, mode: OperatingMode
-    ) -> None:
+    def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         self._require_open(handle)
         state = self._channel(channel)
         trigger_unsupported = not FAKE_CAPABILITIES.supports_trigger_mode
@@ -150,6 +146,4 @@ class FakeTransport(Transport):
 
     def _require_current_in_range(self, name: str, value: float) -> None:
         if not 0 <= value <= _CURRENT_CEILING_MA:
-            raise CommandRejectedError(
-                f"{name} {value} outside 0..{_CURRENT_CEILING_MA} mA"
-            )
+            raise CommandRejectedError(f"{name} {value} outside 0..{_CURRENT_CEILING_MA} mA")

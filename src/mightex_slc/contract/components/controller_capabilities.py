@@ -30,16 +30,9 @@ class ControllerCapabilities(ContractModel):
         ge=2,
         le=127,
         description=(
-            "Maximum programmable current/time pairs before the required "
-            "(0, 0) terminator."
+            "Maximum programmable current/time pairs before the required (0, 0) terminator."
         ),
     )
-    supports_trigger_mode: bool = Field(
-        description="Whether TRIGGER mode is available."
-    )
-    supports_load_voltage: bool = Field(
-        description="Whether load-voltage read-back is available."
-    )
-    supports_fan_control: bool = Field(
-        description="Whether FanPWM control is available."
-    )
+    supports_trigger_mode: bool = Field(description="Whether TRIGGER mode is available.")
+    supports_load_voltage: bool = Field(description="Whether load-voltage read-back is available.")
+    supports_fan_control: bool = Field(description="Whether FanPWM control is available.")
