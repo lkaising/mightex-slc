@@ -3,7 +3,7 @@
 operation: open_device
 request:
   additionalProperties: false
-  description: Open the controller at a serial port.
+  description: Open a controller connection.
   properties:
     port:
       anyOf:
@@ -11,8 +11,11 @@ request:
         type: string
       - type: 'null'
       default: null
-      description: Serial port device path of the controller to open (e.g. /dev/cu.usbserial-A6002xyz);
-        None uses the backend's configured default target
+      description: Serial port to open; omit to use the configured default
+      examples:
+      - COM3
+      - /dev/ttyUSB0
+      - /dev/cu.usbserial-A6002xyz
   title: OpenDeviceRequest
   type: object
 reply:
@@ -26,7 +29,7 @@ reply:
           default: ok
           type: string
         device_id:
-          description: Opaque device id for subsequent operations
+          description: Opaque controller id for subsequent operations
           type: string
         serial_number:
           description: Serial number of the opened controller

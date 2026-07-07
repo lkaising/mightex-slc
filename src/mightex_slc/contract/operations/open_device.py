@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 #  Filename: open_device.py
 #
-#  Purpose: Define request and reply models for opening a controller.
+#  Purpose: Define request and reply models for opening a controller connection.
 #
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
@@ -18,16 +18,13 @@ from ..components.error import Error
 
 
 class OpenDeviceRequest(ContractModel):
-    """Open the controller at a serial port."""
+    """Open a controller connection."""
 
     port: str | None = Field(
         default=None,
         min_length=1,
-        description=(
-            "Serial port device path of the controller to open "
-            "(e.g. /dev/cu.usbserial-A6002xyz); None uses the backend's "
-            "configured default target"
-        ),
+        description="Serial port to open; omit to use the configured default",
+        examples=["COM3", "/dev/ttyUSB0", "/dev/cu.usbserial-A6002xyz"],
     )
 
 
@@ -36,7 +33,7 @@ class OpenDeviceOk(ContractModel):
 
     status: Literal["ok"] = "ok"
     device_id: str = Field(
-        description="Opaque device id for subsequent operations"
+        description="Opaque controller id for subsequent operations"
     )
     serial_number: str = Field(
         description="Serial number of the opened controller"
