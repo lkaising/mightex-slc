@@ -3,11 +3,10 @@
 description: Concrete error types returned in operation failure replies. Values mirror
   the client exception classes used to reconstruct failures across the transport boundary.
 enum:
-- ValueError
-- ControllerClosedError
 - DeviceConnectionError
 - DeviceNotFoundError
 - DeviceCommandError
 - UnsupportedOperationError
+- ControllerClosedError
 title: ErrorType
 type: string

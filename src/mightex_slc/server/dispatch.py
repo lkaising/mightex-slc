@@ -57,6 +57,8 @@ def dispatch(
         # Known operational failures cross the seam as data; anything else is
         # a bug and keeps raising. Validation errors from the request rebuild
         # above also stay raw for now — inert with the in-process client.
+        # Enveloping them (and picking a contract error type for them) is a
+        # decision for when an out-of-process caller exists.
         reply = to_error(exc)
     return reply.model_dump(mode="json")
 

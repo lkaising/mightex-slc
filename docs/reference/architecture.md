@@ -135,9 +135,10 @@ MightexLEDError
 └── ControllerClosedError
 ```
 
-Plus plain `ValueError` for argument validation. The contract's `ErrorType`
-enum holds exactly these six leaf names as strings, so `link` maps an error
-reply back to the right exception class mechanically.
+Plus plain `ValueError` for argument validation, raised client-side and not
+part of the contract. The contract's `ErrorType` enum holds exactly these
+five leaf names as strings, so `link` maps an error reply back to the right
+exception class mechanically.
 
 Errors surface in three distinct places:
 

@@ -18,11 +18,6 @@ class ErrorType(StrEnum):
     across the transport boundary.
     """
 
-    # TODO: VALUE_ERROR may never appear in a server envelope, because
-    # client-side Pydantic validation raises ValueError before a request is
-    # sent. Deliberately deferred until server/client error behavior exists
-    # (post-Phase 1).
-    VALUE_ERROR = "ValueError"
     DEVICE_CONNECTION = "DeviceConnectionError"
     DEVICE_NOT_FOUND = "DeviceNotFoundError"
     DEVICE_COMMAND = "DeviceCommandError"

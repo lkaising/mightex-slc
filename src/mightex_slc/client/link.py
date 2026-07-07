@@ -85,10 +85,7 @@ def _default_backend() -> Backend:
     return Server(create_transport())
 
 
-# VALUE_ERROR is defensive: validation raises ValueError client-side before a
-# request is sent, so the server never emits it today.
 _ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
-    ErrorType.VALUE_ERROR: ValueError,
     ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
     ErrorType.DEVICE_CONNECTION: DeviceConnectionError,
     ErrorType.DEVICE_NOT_FOUND: DeviceNotFoundError,
