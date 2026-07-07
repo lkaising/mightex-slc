@@ -10,7 +10,7 @@ name = "mightex-slc"
 version = "0.0.0"
 description = "Python library for Mightex Sirius SLC-series multi-channel LED controllers."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "pydantic",
     "pyserial",
@@ -30,7 +30,7 @@ packages = ["src/mightex_slc"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 src = ["src", "scripts"]
 
 [tool.ruff.lint]

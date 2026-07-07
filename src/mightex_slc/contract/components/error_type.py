@@ -8,10 +8,10 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class ErrorType(str, Enum):
+class ErrorType(StrEnum):
     """Concrete error types returned in operation failure replies.
 
     Values mirror the client exception classes used to reconstruct failures
