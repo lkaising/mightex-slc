@@ -18,7 +18,7 @@ client method ultimately goes through here.
 
 from __future__ import annotations
 
-from typing import Any, Protocol, TypeVar
+from typing import Any, NoReturn, Protocol, TypeVar
 
 from pydantic import TypeAdapter
 
@@ -31,6 +31,7 @@ from ..contract import (
     ConfigureNormalRequest,
     ContractModel,
     Error,
+    ErrorType,
     InitializeOk,
     InitializeReply,
     InitializeRequest,
@@ -41,6 +42,13 @@ from ..contract import (
     SetActiveModeOk,
     SetActiveModeReply,
     SetActiveModeRequest,
+)
+from .errors import (
+    ControllerClosedError,
+    DeviceCommandError,
+    DeviceConnectionError,
+    DeviceNotFoundError,
+    UnsupportedOperationError,
 )
 
 
@@ -63,6 +71,16 @@ _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(
     SetActiveModeReply
 )
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
+
+# VALUE_ERROR is defensive: validation raises ValueError client-side before a
+# request is sent, so the server never emits it today.
+_ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
+    ErrorType.VALUE_ERROR: ValueError,
+    ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
+    ErrorType.DEVICE_CONNECTION: DeviceConnectionError,
+    ErrorType.DEVICE_NOT_FOUND: DeviceNotFoundError,
+    ErrorType.UNSUPPORTED_OPERATION: UnsupportedOperationError,
+}
 
 
 def use_backend(backend: Backend | None) -> None:
@@ -88,6 +106,13 @@ def _default_backend() -> Backend:
     return Server(FakeTransport())
 
 
+def _raise_error(reply: Error) -> NoReturn:
+    """Raise the client exception matching one error reply."""
+    if reply.error_type is ErrorType.DEVICE_COMMAND:
+        raise DeviceCommandError(reply.message, code=reply.code)
+    raise _ERROR_EXCEPTIONS[reply.error_type](reply.message)
+
+
 def _roundtrip(
     operation: str,
     request: ContractModel,
@@ -97,8 +122,7 @@ def _roundtrip(
     reply_dict = call(operation, request.model_dump(mode="json"))
     reply = reply_adapter.validate_python(reply_dict)
     if isinstance(reply, Error):
-        # Placeholder until Phase 5 maps error_type to the client exception.
-        raise RuntimeError(f"{reply.error_type.value}: {reply.message}")
+        _raise_error(reply)
     return reply
 
 
