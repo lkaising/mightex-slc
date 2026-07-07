@@ -71,7 +71,11 @@ def open_device(port: str | None = None, *, transport: Transport | None = None) 
 
 
 def open_fake_device() -> Controller:
-    """Open the in-memory simulated controller: the explicit no-hardware path."""
+    """Open the built-in simulated controller; no hardware is required.
+
+    Returns:
+        A Controller for the simulated device.
+    """
     from ..transport.fake import FakeTransport
 
     return open_device(transport=FakeTransport())

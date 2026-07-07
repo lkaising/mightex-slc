@@ -39,7 +39,21 @@ class Channel:
         return self._number
 
     def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
-        """Store NORMAL-mode current parameters for this channel; output unchanged."""
+        """Store NORMAL-mode current parameters for this channel; output is unchanged.
+
+        Args:
+            current_max_ma: NORMAL-mode current limit, in mA. Must be >= 0.
+            current_set_ma: NORMAL-mode set current, in mA. Must be >= 0 and
+                no greater than current_max_ma.
+
+        Raises:
+            ValueError: If either current is negative or current_set_ma
+                exceeds current_max_ma.
+            DeviceCommandError: If the device rejects the values or the
+                channel number is out of range for the module.
+            ControllerClosedError: If the controller has been closed.
+            DeviceConnectionError: If communication with the device fails.
+        """
         link.configure_normal(
             self._executor,
             self._device_id,
@@ -49,5 +63,17 @@ class Channel:
         )
 
     def set_active_mode(self, mode: OperatingMode) -> None:
-        """Switch this channel's active working mode, effective immediately."""
+        """Switch this channel's active working mode, effective immediately.
+
+        Args:
+            mode: The OperatingMode to make active: DISABLE, NORMAL, STROBE,
+                or TRIGGER.
+
+        Raises:
+            ValueError: If mode is not a valid OperatingMode.
+            DeviceCommandError: If the channel number is out of range for the
+                module or the module does not support the requested mode.
+            ControllerClosedError: If the controller has been closed.
+            DeviceConnectionError: If communication with the device fails.
+        """
         link.set_active_mode(self._executor, self._device_id, self._number, mode)
