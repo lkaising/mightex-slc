@@ -1,5 +1,20 @@
 # RS232 Backend Handoff — normal-mode slice, to real hardware
 
+> **Outcome (2026-07-06): executed.** The RS232 backend is built
+> (`transport/rs232/codec.py` + `rs232_transport.py`) and hardware-verified on
+> the bench SLC-SA04-U/S — an LED was driven on and off through the public
+> API. Backend selection is `transport.create_transport()`
+> (`MIGHTEX_SLC_BACKEND`, default `rs232`; `MIGHTEX_SLC_PORT`); `initialize`
+> was removed as an operation (ECHOOFF folded into `open_device`, and
+> `requires_initialization` left the capabilities); `server/impl/` is filled
+> in and dispatch routes through it; tests and bring-up probes live under
+> `../../../examples/`. Device behavior observed at bring-up that differs
+> from the record below is logged in
+> [`../reference/device_and_protocol.md`](../reference/device_and_protocol.md)
+> §§5–6, 9 (12-field `?CURRENT`, clean `##` from ECHOOFF, bare DEVICEINFO
+> framing). §3's "pyserial not installed" and parts of §9's housekeeping list
+> are superseded.
+
 Status: written 2026-07-06 on the Linux hardware machine, from a fresh audit of
 the live code, the two projects, and the connected device. This is a **map, not
 a manual**: it points at where the truth lives and flags what to trust. It does

@@ -27,8 +27,6 @@ from ..contract import (
     ConfigureNormalOk,
     ConfigureNormalRequest,
     ContractModel,
-    InitializeOk,
-    InitializeRequest,
     OpenDeviceOk,
     OpenDeviceRequest,
     SetActiveModeOk,
@@ -36,6 +34,7 @@ from ..contract import (
 )
 from ..transport import Transport, TransportError
 from .errors import to_error, unsupported_operation
+from .impl import ControllerModel
 from .session import Session, UnknownDeviceError
 
 
@@ -68,24 +67,13 @@ def _open_device(
     session: Session,
     transport: Transport,
 ) -> OpenDeviceOk:
-    result = transport.open_device(port=request.port)
-    device_id = session.register(result.handle)
+    model = ControllerModel.open(transport, port=request.port)
+    device_id = session.register(model)
     return OpenDeviceOk(
         device_id=device_id,
-        serial_number=result.serial_number,
-        capabilities=result.capabilities,
+        serial_number=model.serial_number,
+        capabilities=model.capabilities,
     )
-
-
-def _initialize(
-    request: InitializeRequest,
-    *,
-    session: Session,
-    transport: Transport,
-) -> InitializeOk:
-    handle = session.get(request.device_id)
-    transport.initialize(handle)
-    return InitializeOk()
 
 
 def _configure_normal(
@@ -94,9 +82,9 @@ def _configure_normal(
     session: Session,
     transport: Transport,
 ) -> ConfigureNormalOk:
-    handle = session.get(request.device_id)
-    transport.configure_normal(
-        handle, request.channel, request.current_max_ma, request.current_set_ma
+    model = session.get(request.device_id)
+    model.channel(request.channel).configure_normal(
+        request.current_max_ma, request.current_set_ma
     )
     return ConfigureNormalOk()
 
@@ -107,8 +95,8 @@ def _set_active_mode(
     session: Session,
     transport: Transport,
 ) -> SetActiveModeOk:
-    handle = session.get(request.device_id)
-    transport.set_active_mode(handle, request.channel, request.mode)
+    model = session.get(request.device_id)
+    model.channel(request.channel).set_active_mode(request.mode)
     return SetActiveModeOk()
 
 
@@ -118,16 +106,16 @@ def _close_device(
     session: Session,
     transport: Transport,
 ) -> CloseDeviceOk:
-    # Pop before the transport close: the device_id must stop resolving even
-    # though transport close is idempotent and documented no-fail.
-    handle = session.pop(request.device_id)
-    transport.close_device(handle)
+    # Pop before the close: the device_id must stop resolving even though
+    # the model's close (a transport close) is idempotent and documented
+    # no-fail.
+    model = session.pop(request.device_id)
+    model.close()
     return CloseDeviceOk()
 
 
 _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "open_device": (OpenDeviceRequest, _open_device),
-    "initialize": (InitializeRequest, _initialize),
     "configure_normal": (ConfigureNormalRequest, _configure_normal),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
     "close_device": (CloseDeviceRequest, _close_device),

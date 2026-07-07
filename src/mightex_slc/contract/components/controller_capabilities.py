@@ -49,6 +49,3 @@ class ControllerCapabilities(ContractModel):
     supports_fan_control: bool = Field(
         description="Whether FanPWM control is available."
     )
-    requires_initialization: bool = Field(
-        description="Whether initialize() must run before channel-control operations."
-    )

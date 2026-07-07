@@ -84,11 +84,9 @@ polished naming from the contract branch's API skeleton. For the slice:
 ```python
 from mightex_slc import OperatingMode, open_device
 
-PORT: str | None = None  # e.g. "/dev/cu.usbserial-A6002xyz"; None = backend default
+PORT: str | None = None  # e.g. "/dev/ttyUSB0"; None = backend default (MIGHTEX_SLC_PORT)
 
 with open_device(port=PORT) as controller:        # -> Controller (context manager)
-    if controller.requires_initialization:        # capability cached from open
-        controller.initialize()
     channel = controller.channel(1)               # one-based; pure client-side accessor
     channel.configure_normal(current_max_ma=200.0, current_set_ma=100.0)
     channel.set_active_mode(OperatingMode.NORMAL)  # light on
@@ -105,15 +103,21 @@ Decisions this implies (resolving stale skeleton docstrings):
   scanning. Probing a port is a side-effecting act (opening sends ECHOOFF,
   which enters PC Mode on MA/CA-MU variants), so the user names the port —
   `None` means the backend's configured default target (the fake's one
-  simulated controller; a future rs232 default set by constructor, env, or
-  config). An rs232 backend without a configured default fails the open.
-- `Controller` caches the `ControllerCapabilities` returned by open —
-  `requires_initialization` must answer without a round trip. (The skeleton
-  docstring's "holds a device_id and nothing else" is superseded.)
+  simulated controller; the rs232 default set by constructor argument or the
+  `MIGHTEX_SLC_PORT` environment variable). An rs232 backend without a
+  configured default fails the open.
+- There is no `initialize()` operation: host-control entry (ECHOOFF) is part
+  of `open_device` itself, which is why opening is documented as
+  side-effecting.
+- `Controller` caches the `ControllerCapabilities` returned by open, so
+  capability questions answer without a round trip. (The skeleton docstring's
+  "holds a device_id and nothing else" is superseded.)
 - `channel(n)` never crosses the seam; it just constructs a `Channel` proxy
   holding `(device_id, n)`.
 - `configure_normal` takes flat `current_max_ma` / `current_set_ma` floats in
-  mA; the device's per-family resolution rounding happens server-side.
+  mA; nothing rescales or rounds them. The rs232 backend serializes values
+  faithfully and refuses what the wire cannot express (non-whole mA, and the
+  0.1 mA-unit F*/X* families at open) rather than silently reinterpreting.
 - `OperatingMode` is an `IntEnum` with the device's own codes: DISABLE=0,
   NORMAL=1, STROBE=2, TRIGGER=3. These serialize as plain ints on the wire
   (`{"device_id": …, "channel": 1, "mode": 1}`).
@@ -158,17 +162,19 @@ semantics in `device_and_protocol.md` §7:
   per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
 - `configure_normal` stores parameters **without changing output**;
   `set_active_mode` is what "lights the LED" (mutates active mode).
-- Reports capabilities on open; `requires_initialization=True` so the
-  example's `initialize()` branch actually executes in integration runs.
+- Reports capabilities on open (an MA04-MU persona, which keeps the
+  no-trigger capability path exercised).
 
 The acceptance run checks the fake's end state (stored params match, mode is
 DISABLE after the `finally`), which is how the slice proves device semantics
 without hardware.
 
-## 6. The RS232 backend (future — design is settled, timing is not)
+## 6. The RS232 backend (built 2026-07-06, verified on the bench SA04)
 
-Out of scope for the current slice, but its shape is already known because the
-test project proved it against real hardware. When it's built:
+Implemented in `transport/rs232/` and proven against the real controller — an
+LED driven on and off through the public API. The shape below is what was
+built; the deviations the bench unit showed from the recorded recipe are
+logged in `device_and_protocol.md` §§5–6 and §9.
 
 **Division of labor** (mirrors the test project's proven three-layer split):
 
@@ -201,12 +207,23 @@ after the port closes); program → verify → only then `STORE`; identifying th
 right `/dev/cu.usbserial-*` path on macOS is on the user (the library never
 scans for it), and running there is new ground.
 
-**Known weak spots to do better than the test project:** the 20 ms drain is a
-heuristic, not a framing guarantee (the per-command buffer reset is the real
-safety net); the 0.3 s settle lived only in a test, unencoded; query-response
-parsing (`?TRIGGER`/`?TRIGP`) was never made robust; no thread safety, no
-retries. (Its lack of port auto-discovery is not a weak spot — that is now
-this library's deliberate design; see §7.)
+**The test project's weak spots, as addressed in this backend:** ECHOOFF no
+longer demands a reply (tolerate-empty, never ack-required); buffer hygiene is
+testable (the test double's `reset_input_buffer` really clears, so a transport
+that skips it fails tests); the 0.3 s settle lives with the probe that
+exercises it (`examples/probe_configure_readback.py` — no slice operation
+reads back, so the driver needs no delay); `?CURRENT` parsing is pinned by
+tests against the real 12-field reply. Still deliberately absent: thread
+safety and retries (out of slice scope; strict request/reply plus buffer
+hygiene is why no-retries works). Port auto-discovery remains a deliberate
+cut; see §7.
+
+**Backend selection.** `transport.create_transport()` picks the backend:
+explicit argument, else the `MIGHTEX_SLC_BACKEND` environment variable
+(`rs232` | `fake`), defaulting to `rs232`; the rs232 default port comes from
+`MIGHTEX_SLC_PORT` when set. The client's `link._default_backend()` calls it
+(the default is constructed once and cached until `use_backend(None)`), and
+`link.use_backend()` remains the swap seam for tests.
 
 ## 7. Deliberate cuts (settled — do not reopen)
 

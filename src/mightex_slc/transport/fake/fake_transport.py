@@ -37,8 +37,8 @@ from ..base import (
 FAKE_SERIAL_NUMBER = "04-000000-001"
 
 # One simulated SLC-MA04-MU. Every value below is a documented fact for that
-# variant (device_and_protocol.md §§5-8), including that initialization
-# (PC-Mode entry via ECHOOFF) is genuinely required.
+# variant (device_and_protocol.md §§5-8). PC-Mode entry via ECHOOFF is folded
+# into open_device, so no capability needs to instruct the caller about it.
 FAKE_CAPABILITIES = ControllerCapabilities(
     module_type=ModuleType.MA,
     channel_count=4,
@@ -47,7 +47,6 @@ FAKE_CAPABILITIES = ControllerCapabilities(
     supports_trigger_mode=False,
     supports_load_voltage=False,
     supports_fan_control=True,
-    requires_initialization=True,
 )
 
 # MA04-MU current ceiling in NORMAL and STROBE (device_and_protocol.md §8).
@@ -77,7 +76,6 @@ class FakeTransport(Transport):
             FakeChannelState() for _ in range(FAKE_CAPABILITIES.channel_count)
         ]
         self._open_handle: TransportHandle | None = None
-        self._initialized = False
 
     def open_device(self, port: str | None = None) -> TransportOpenResult:
         # port is accepted for interface compatibility and deliberately inert:
@@ -87,18 +85,11 @@ class FakeTransport(Transport):
         if self._open_handle is not None:
             raise TransportError("device is already open")
         self._open_handle = TransportHandle()
-        self._initialized = False  # PC-Mode entry is per-connection
         return TransportOpenResult(
             handle=self._open_handle,
             serial_number=FAKE_SERIAL_NUMBER,
             capabilities=FAKE_CAPABILITIES,
         )
-
-    def initialize(self, handle: TransportHandle) -> None:
-        # Recorded, not enforced: what a real MA04-MU does when commanded
-        # before PC-Mode entry is undocumented, so no rejection is invented.
-        self._require_open(handle)
-        self._initialized = True
 
     def configure_normal(
         self,
@@ -142,11 +133,6 @@ class FakeTransport(Transport):
     def is_open(self) -> bool:
         """Whether a handle is currently open on the fake device."""
         return self._open_handle is not None
-
-    @property
-    def initialized(self) -> bool:
-        """Whether initialize() has run since the device was last opened."""
-        return self._initialized
 
     def channel_state(self, channel: int) -> FakeChannelState:
         """A copy of one channel's state, readable open or closed."""

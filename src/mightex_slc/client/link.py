@@ -32,9 +32,6 @@ from ..contract import (
     ContractModel,
     Error,
     ErrorType,
-    InitializeOk,
-    InitializeReply,
-    InitializeRequest,
     OpenDeviceOk,
     OpenDeviceReply,
     OpenDeviceRequest,
@@ -63,7 +60,6 @@ _backend: Backend | None = None
 _OkT = TypeVar("_OkT", bound=ContractModel)
 
 _OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceReply)
-_INITIALIZE_REPLY: TypeAdapter[InitializeOk | Error] = TypeAdapter(InitializeReply)
 _CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(
     ConfigureNormalReply
 )
@@ -84,7 +80,11 @@ _ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
 
 
 def use_backend(backend: Backend | None) -> None:
-    """Install the backend link calls; None resets to the lazy default."""
+    """Install the backend link calls; None resets to the lazy default.
+
+    The default backend is constructed once, on first use, and then cached;
+    a changed environment takes effect only after use_backend(None).
+    """
     global _backend
     _backend = backend
 
@@ -101,9 +101,9 @@ def _default_backend() -> Backend:
     # The one place the client reaches the server; imported lazily so the
     # client carries no server dependency until first use.
     from ..server.api import Server
-    from ..transport.fake import FakeTransport
+    from ..transport import create_transport
 
-    return Server(FakeTransport())
+    return Server(create_transport())
 
 
 def _raise_error(reply: Error) -> NoReturn:
@@ -129,12 +129,6 @@ def _roundtrip(
 def open_device(port: str | None = None) -> OpenDeviceOk:
     """Open the controller at a serial target; None means the backend default."""
     return _roundtrip("open_device", OpenDeviceRequest(port=port), _OPEN_DEVICE_REPLY)
-
-
-def initialize(device_id: str) -> None:
-    """Put an opened controller into host-control mode."""
-    request = InitializeRequest(device_id=device_id)
-    _roundtrip("initialize", request, _INITIALIZE_REPLY)
 
 
 def configure_normal(

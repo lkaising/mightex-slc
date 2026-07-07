@@ -13,7 +13,6 @@ from .configure_normal import (
     ConfigureNormalReply,
     ConfigureNormalRequest,
 )
-from .initialize import InitializeOk, InitializeReply, InitializeRequest
 from .open_device import OpenDeviceOk, OpenDeviceReply, OpenDeviceRequest
 from .set_active_mode import SetActiveModeOk, SetActiveModeReply, SetActiveModeRequest
 
@@ -26,9 +25,6 @@ __all__ = [
     "ConfigureNormalReply",
     "ConfigureNormalRequest",
     "DeviceRequest",
-    "InitializeOk",
-    "InitializeReply",
-    "InitializeRequest",
     "OpenDeviceOk",
     "OpenDeviceReply",
     "OpenDeviceRequest",

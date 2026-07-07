@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from ..transport import TransportHandle
+from .impl import ControllerModel
 
 
 class UnknownDeviceError(Exception):
@@ -32,34 +32,35 @@ class UnknownDeviceError(Exception):
 
 
 class Session:
-    """Registry of open devices, mapping public device_id to live handle.
+    """Registry of open devices, mapping public device_id to live model.
 
-    The public device_id is generated here, at registration time; the opaque
-    transport handle it maps to never leaves the server.
+    The public device_id is generated here, at registration time; the
+    controller model (and the transport handle inside it) never leaves the
+    server.
     """
 
     def __init__(self) -> None:
-        self._handles: dict[str, TransportHandle] = {}
+        self._models: dict[str, ControllerModel] = {}
 
-    def register(self, handle: TransportHandle) -> str:
-        """Register a newly opened handle and return its new public device_id."""
+    def register(self, model: ControllerModel) -> str:
+        """Register a newly opened controller and return its new device_id."""
         device_id = uuid4().hex
-        self._handles[device_id] = handle
+        self._models[device_id] = model
         return device_id
 
-    def get(self, device_id: str) -> TransportHandle:
-        """Return the live handle for a device_id."""
+    def get(self, device_id: str) -> ControllerModel:
+        """Return the live controller model for a device_id."""
         try:
-            return self._handles[device_id]
+            return self._models[device_id]
         except KeyError:
             raise UnknownDeviceError(
                 f"unknown or closed device_id: {device_id!r}"
             ) from None
 
-    def pop(self, device_id: str) -> TransportHandle:
-        """Remove and return the live handle for a device_id."""
+    def pop(self, device_id: str) -> ControllerModel:
+        """Remove and return the live controller model for a device_id."""
         try:
-            return self._handles.pop(device_id)
+            return self._models.pop(device_id)
         except KeyError:
             raise UnknownDeviceError(
                 f"unknown or closed device_id: {device_id!r}"

@@ -69,7 +69,7 @@ class TransportOpenResult:
 
 
 class Transport(ABC):
-    """The interface the server drives; carries the slice's five operations.
+    """The interface the server drives; carries the slice's four operations.
 
     It is allowed to grow with later slices without the contract moving.
     close_device is idempotent and never a safety action; every other
@@ -84,14 +84,10 @@ class Transport(ABC):
         (e.g. /dev/cu.usbserial-A6002xyz); None uses the backend's configured
         default target, and a backend without one fails the open. A transport
         never scans or probes ports — it opens only the one it is told to
-        (opening has side effects: PC-Mode entry on MA/CA modules). Raises
+        (opening is side-effecting: the backend enters host control by sending
+        ECHOOFF, which is PC-Mode entry on MA/CA modules). Raises
         DeviceNotPresentError when nothing answers at the port, TransportError
         when the device is already held open."""
-
-    @abstractmethod
-    def initialize(self, handle: TransportHandle) -> None:
-        """Prepare the device for host control (PC-Mode entry on MA/CA
-        modules; harmless hygiene elsewhere)."""
 
     @abstractmethod
     def configure_normal(

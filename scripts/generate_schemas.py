@@ -63,8 +63,6 @@ from mightex_slc.contract import (  # noqa: E402
     ControllerCapabilities,
     Error,
     ErrorType,
-    InitializeReply,
-    InitializeRequest,
     ModuleType,
     OpenDeviceReply,
     OpenDeviceRequest,
@@ -82,7 +80,6 @@ HEADER = (
 
 OPERATIONS: dict[str, tuple[Any, Any]] = {
     "open_device": (OpenDeviceRequest, OpenDeviceReply),
-    "initialize": (InitializeRequest, InitializeReply),
     "configure_normal": (ConfigureNormalRequest, ConfigureNormalReply),
     "set_active_mode": (SetActiveModeRequest, SetActiveModeReply),
     "close_device": (CloseDeviceRequest, CloseDeviceReply),

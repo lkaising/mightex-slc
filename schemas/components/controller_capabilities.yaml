@@ -31,9 +31,6 @@ properties:
   supports_fan_control:
     description: Whether FanPWM control is available.
     type: boolean
-  requires_initialization:
-    description: Whether initialize() must run before channel-control operations.
-    type: boolean
 required:
 - module_type
 - channel_count
@@ -42,6 +39,5 @@ required:
 - supports_trigger_mode
 - supports_load_voltage
 - supports_fan_control
-- requires_initialization
 title: ControllerCapabilities
 type: object

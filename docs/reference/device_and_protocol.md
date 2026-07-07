@@ -21,18 +21,19 @@ The unit everything was actually tested on **[HW]**:
 - **Mightex SLC-SA04-U/S**, firmware **3.1.8**, serial **04-251013-011**.
   4-channel, SA family: 2-step profiles, no voltage monitoring, trigger mode
   present, 1 mA current resolution, 1 A NORMAL / 3.5 A pulsed ceilings.
-- Connected over serial at `/dev/ttyUSB0` on Linux (USB-serial path). The new
-  environment is macOS, where the device path is `/dev/cu.usbserial-*` instead
-  — the user identifies and names it (the library never scans for ports), and
-  nothing in any prior project covers macOS yet. **[C]**
+- Connected over serial at `/dev/ttyUSB0` on Linux (an FTDI FT232R USB-serial
+  adapter). The user identifies and names the port (the library never scans
+  for ports). Unit identity re-confirmed via `DEVICEINFO` on 2026-07-06
+  during RS232-backend bring-up. **[HW]** (macOS `/dev/cu.usbserial-*` remains
+  untried ground.)
 - Bench LEDs (Thorlabs): CH1 **M850L3** (850 nm, capped 1000 mA by NORMAL
   mode; datasheet 1200 mA), CH2 **M940L3** (940 nm), CH3 **M1050L4** (1050 nm,
   capped 600 mA), CH4 unused (reserved for a future 1300 nm LED). Use case:
   NIR imaging with an Arduino frame-sync trigger.
 
 The example script and capability model also account for **SLC-MA04-MU /
-CA04-MU** variants (which require an initialization step and support fan
-control) **[V]**. Whether one of those is actually on hand is an open question —
+CA04-MU** variants (which enter PC Mode on the first ECHOOFF — now sent by
+`open_device` — and support fan control) **[V]**. Whether one of those is actually on hand is an open question —
 the bench-verified unit is the SA04.
 
 ## 2. Physical connection & serial parameters
@@ -100,12 +101,14 @@ field for this; treat it as unpopulated until proven otherwise.
   is mandatory**: receiving `ECHOON` or `ECHOOFF` is what switches those
   modules from Manual Mode (knobs) into **PC Mode** (host control; knobs go
   dummy; the module outputs its last STOREd state on entry). **[V]**
-- ⚠ `ECHOOFF` is **not acknowledged with `##`** — the real device returns
-  *something* (never a clean ack), so send it, consume whatever comes back,
-  and do not require an ack. **[HW]**
-- This maps directly to the library's `requires_initialization` /
-  `initialize()` concept: on MA/CA-MU variants initialization is the PC-Mode
-  entry; on other modules the ECHOOFF is harmless hygiene. **[C]**
+- ⚠ Do **not require an ack** for `ECHOOFF`: send it, consume whatever comes
+  back, move on. History recorded it as never cleanly acked **[HW]**, but on
+  2026-07-06 the bench SA04 (fw 3.1.8, already in EchoOff state) answered a
+  clean `## \r\n` — the reply evidently varies with state/firmware, which is
+  exactly why the no-ack-required rule stands. **[HW]**
+- In the library, ECHOOFF is folded into `open_device` — opening the port IS
+  the host-control entry (PC-Mode entry on MA/CA-MU variants; harmless
+  hygiene elsewhere). There is no separate `initialize()` operation. **[C]**
 
 ## 6. Command reference
 
@@ -118,11 +121,11 @@ Commands the current slice's RS232 backend will eventually need are marked ★.
 | | Command | Response | Notes |
 |---|---|---|---|
 | ★ | `ECHOOFF` / `ECHOON` | not `##`-acked **[HW]** | See §5. Send `ECHOOFF` on every connect. |
-| ★ | `DEVICEINFO` | one line, `#`-prefixed info string | Our unit returns `Mightex LED Driver:3.1.8 Device Module No.:SLC-SA04-U/S Device Serial No.:04-251013-011` **[HW]**. The SDK's example (`PhotonEdge LED Driver:1.1.5 Device Serial No.:04-060510-001`) has a different shape and *no module field* — parse by keyword (`Driver:`, `Module No.:`, `Serial No.:`), never by position. **[V][HW]** |
+| ★ | `DEVICEINFO` | one line, **bare** (no `#` prefix) string | Our unit returns `Mightex LED Driver:3.1.8 Device Module No.:SLC-SA04-U/S Device Serial No.:04-251013-011` — raw framing observed 2026-07-06: `…011 \r\n` (trailing space, then CR LF) **[HW]**. The SDK's example (`PhotonEdge LED Driver:1.1.5 Device Serial No.:04-060510-001`) has a different shape and *no module field* — parse by keyword (`Driver:`, `Module No.:`, `Serial No.:`), never by position. **[V][HW]** |
 | ★ | `MODE ch mode` | `##` | Set working mode: 0 DISABLE, 1 NORMAL, 2 STROBE, 3 TRIGGER. Takes effect immediately. Re-sending `MODE ch 2` while in STROBE restarts the profile. **[V][HW]** |
 | ★ | `?MODE ch` | `#<mode>` e.g. `#1` | Query working mode. **[HW]** |
 | ★ | `NORMAL ch Imax Iset` | `##` | Set NORMAL-mode params. `Imax` = per-mode programmable ceiling, `Iset` = working current. e.g. `NORMAL 1 200 100`. **[V][HW]** |
-| ★ | `?CURRENT ch` | `#Cal1 Cal2 Imax Iset` e.g. `#50 60 200 100` | ⚠ First two fields are **calibration values — ignore them; take the last two tokens**. A positional parse reads calibration data as currents. **[V][HW]** |
+| ★ | `?CURRENT ch` | `#<calibration…> Imax Iset` | ⚠ The vendor documents two leading calibration fields (`#Cal1 Cal2 Imax Iset`); fw 3.1.8 actually returns **twelve fields**, e.g. `#5 81 480 972 1468 1964 8 -72 8000 0 1000 10` (2026-07-06; one field can be negative). `Imax`/`Iset` are the **last two tokens** — that rule, not any positional count, is the parse. **[V][HW]** |
 | | `CURRENT ch Iset` | `##` | Quick-set working current, live. Only works while the channel is already in NORMAL mode. **[V][HW]** |
 | | `STROBE ch Imax Repeat` | `##` | Strobe params. Profile plays `Repeat + 1` times; **9999 = repeat forever** (a reserved value *inside* the 0–99999999 range — exactly 10000 plays is impossible). **[V]** |
 | | `STRP ch step Iset Tset` | `##` | Strobe profile step. `step` 0–127; `Tset` in µs; a `0 0` pair must terminate the profile (so 127 usable steps; **2 usable on SA/SV/FA/FV/HA/HV/MA/CA**). **[V]** |
@@ -202,14 +205,19 @@ the real device. The future RS232 backend must honor all of them. **[HW]**
    bytes from the previous exchange. Belt to the drain's suspenders.
 4. **Ack by substring, error by prefix.** `"##" in response`;
    `startswith("#!")` / `startswith("#?")`; `"is not defined"` substring.
-5. **`ECHOOFF` gets no `##` ack.** Send it, consume the response, move on.
+5. **Never require an ack for `ECHOOFF`.** Send it, consume the response,
+   move on. (Historically it was never cleanly acked; on 2026-07-06 the SA04
+   answered a clean `## \r\n` — the reply varies, the rule holds.)
 6. **Strip `#` and tolerate junk in every parser.** All proven parsers do
    `response.replace("#", "")` then split — never positional parsing.
-7. **`?CURRENT` leads with two calibration fields.** Take the *last two*
-   tokens for `Imax`/`Iset`.
+7. **`?CURRENT` leads with calibration fields — more than documented.** The
+   vendor says two; fw 3.1.8 returns ten before the currents (twelve fields
+   total, observed 2026-07-06). Take the *last two* tokens for `Imax`/`Iset`.
 8. **~0.3 s settle between writing NORMAL params and reading them back.**
    An immediate `?CURRENT` after `NORMAL` returned stale values on real
-   hardware. Mode round-trips need no such delay.
+   hardware. Mode round-trips need no such delay. (2026-07-06, fw 3.1.8, with
+   per-command reset + drain in place: one immediate read-back came back
+   fresh — keep the settle for read-backs as cheap insurance.)
 9. **`?TRIGP` response format varies.** A structured parser was written,
    tested, and abandoned for substring verification. Re-derive from hardware
    before trusting.
