@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -27,4 +27,4 @@ class CloseDeviceOk(ContractModel):
     status: Literal["ok"] = "ok"
 
 
-CloseDeviceReply = Annotated[Union[CloseDeviceOk, Error], Field(discriminator="status")]
+CloseDeviceReply = Annotated[CloseDeviceOk | Error, Field(discriminator="status")]

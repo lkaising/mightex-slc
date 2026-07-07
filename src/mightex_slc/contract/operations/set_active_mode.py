@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -30,4 +30,4 @@ class SetActiveModeOk(ContractModel):
     status: Literal["ok"] = "ok"
 
 
-SetActiveModeReply = Annotated[Union[SetActiveModeOk, Error], Field(discriminator="status")]
+SetActiveModeReply = Annotated[SetActiveModeOk | Error, Field(discriminator="status")]

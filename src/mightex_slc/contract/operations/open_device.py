@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import Field
 
@@ -39,4 +39,4 @@ class OpenDeviceOk(ContractModel):
     )
 
 
-OpenDeviceReply = Annotated[Union[OpenDeviceOk, Error], Field(discriminator="status")]
+OpenDeviceReply = Annotated[OpenDeviceOk | Error, Field(discriminator="status")]

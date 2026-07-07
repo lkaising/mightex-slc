@@ -36,7 +36,7 @@ class Error(ContractModel):
     )
 
     @model_validator(mode="after")
-    def _code_only_for_device_command(self) -> "Error":
+    def _code_only_for_device_command(self) -> Error:
         if self.code is not None and self.error_type is not ErrorType.DEVICE_COMMAND:
             raise ValueError("code is only valid for DeviceCommandError")
         return self
