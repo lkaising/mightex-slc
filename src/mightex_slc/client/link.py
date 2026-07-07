@@ -86,10 +86,10 @@ def _default_backend() -> Backend:
 
 
 _ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
-    ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
     ErrorType.DEVICE_CONNECTION: DeviceConnectionError,
     ErrorType.DEVICE_NOT_FOUND: DeviceNotFoundError,
     ErrorType.UNSUPPORTED_OPERATION: UnsupportedOperationError,
+    ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
 }
 
 
