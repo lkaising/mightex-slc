@@ -36,31 +36,35 @@ from .types import ControllerCapabilities
 
 
 def open_device(port: str | None = None, *, transport: Transport | None = None) -> Controller:
-    """Open one controller and return its Controller proxy.
+    """Open a controller and return a proxy for it.
 
-    The two normal spellings are open_device("/dev/ttyUSB0") for hardware and
-    open_fake_device() for the simulated controller. transport= is the
-    advanced seam for tests and custom transports: any Transport is accepted,
-    and port passes through to it (the fake accepts and ignores it). Omitting
-    both raises ValueError before anything crosses the seam: this library
-    never simulates by omission.
+    Args:
+        port: Serial port path of the controller, such as "/dev/ttyUSB0".
+        transport: Optional transport implementation for tests or custom
+            integrations; port is forwarded to it. Use open_fake_device()
+            for the built-in simulated controller.
+
+    Returns:
+        A Controller for the opened device.
+
+    Raises:
+        ValueError: If neither port nor transport is given.
+        DeviceNotFoundError: If nothing responds at the requested port.
+        DeviceConnectionError: If the transport cannot be opened or the
+            connection fails for another reason.
     """
     if port is None and transport is None:
         raise ValueError(
             "no serial port specified: pass one, e.g. open_device('/dev/ttyUSB0'), "
             "or use open_fake_device() for the in-memory simulated controller"
         )
-    # Imports are local so the client stays import-light: neither pyserial nor
-    # the server package loads until a device is actually opened.
+    # Local imports: neither pyserial nor the server package loads until a device is opened.
     if transport is None:
         from ..transport.rs232 import RS232Transport
 
         transport = RS232Transport()
     from ..server.api import Server
 
-    # The one place the client constructs its executor. Server(transport)
-    # never appears deeper — link stays executor-typed — so a future daemon
-    # client slots in as another RequestExecutor without moving anything.
     executor = Server(transport)
     reply = link.open_device(executor, port=port)
     return Controller(executor, reply.device_id, reply.capabilities)
