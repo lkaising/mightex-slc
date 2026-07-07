@@ -9,6 +9,7 @@ description = "Python library for Mightex Sirius SLC-series multi-channel LED co
 requires-python = ">=3.11"
 dependencies = [
     "pydantic",
+    "pyserial",
 ]
 
 [project.optional-dependencies]
