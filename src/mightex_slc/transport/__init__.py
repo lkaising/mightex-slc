@@ -31,6 +31,7 @@ from .base import (
     TransportOpenResult,
 )
 
+
 def create_transport(backend: str | None = None) -> Transport:
     """Return the chosen transport backend.
 

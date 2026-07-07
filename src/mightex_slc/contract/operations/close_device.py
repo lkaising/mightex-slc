@@ -27,6 +27,4 @@ class CloseDeviceOk(ContractModel):
     status: Literal["ok"] = "ok"
 
 
-CloseDeviceReply = Annotated[
-    Union[CloseDeviceOk, Error], Field(discriminator="status")
-]
+CloseDeviceReply = Annotated[Union[CloseDeviceOk, Error], Field(discriminator="status")]

@@ -21,16 +21,10 @@ class ControllerCapabilities(ContractModel):
     duplicating vendor module tables.
     """
 
-    module_type: ModuleType = Field(
-        description="Controller module family."
-    )
-    channel_count: int = Field(
-        ge=1,
-        description="Number of LED output channels."
-    )
+    module_type: ModuleType = Field(description="Controller module family.")
+    channel_count: int = Field(ge=1, description="Number of LED output channels.")
     current_resolution_ma: float = Field(
-        gt=0,
-        description="Smallest settable current increment, in milliamps."
+        gt=0, description="Smallest settable current increment, in milliamps."
     )
     max_profile_steps: int = Field(
         ge=2,

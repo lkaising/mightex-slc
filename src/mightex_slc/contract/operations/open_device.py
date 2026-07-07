@@ -32,17 +32,11 @@ class OpenDeviceOk(ContractModel):
     """Controller opened successfully."""
 
     status: Literal["ok"] = "ok"
-    device_id: str = Field(
-        description="Opaque controller id for subsequent operations"
-    )
-    serial_number: str = Field(
-        description="Serial number of the opened controller"
-    )
+    device_id: str = Field(description="Opaque controller id for subsequent operations")
+    serial_number: str = Field(description="Serial number of the opened controller")
     capabilities: ControllerCapabilities = Field(
         description="Capabilities of the opened controller"
     )
 
 
-OpenDeviceReply = Annotated[
-    Union[OpenDeviceOk, Error], Field(discriminator="status")
-]
+OpenDeviceReply = Annotated[Union[OpenDeviceOk, Error], Field(discriminator="status")]

@@ -112,9 +112,7 @@ class RS232Transport(Transport):
                 ser, codec.DEVICE_INFO_COMMAND, require_response=False
             )
             if not text:
-                raise DeviceNotPresentError(
-                    f"no response to DEVICEINFO at {target}"
-                )
+                raise DeviceNotPresentError(f"no response to DEVICEINFO at {target}")
             codec.check_response(text, codec.DEVICE_INFO_COMMAND)
             info = codec.parse_device_info(text)
             if info.module_number is None or info.serial_number is None:
@@ -199,12 +197,8 @@ class RS232Transport(Transport):
             if extra:
                 data += ser.read(extra)
         except serial.SerialException as exc:
-            raise TransportError(
-                f"serial I/O failed for {command!r}: {exc}"
-            ) from exc
+            raise TransportError(f"serial I/O failed for {command!r}: {exc}") from exc
         response = data.decode(_ENCODING, errors="replace").strip()
         if not response and require_response:
-            raise TransportError(
-                f"no response to {command!r} within {self._timeout}s"
-            )
+            raise TransportError(f"no response to {command!r} within {self._timeout}s")
         return response

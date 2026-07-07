@@ -78,9 +78,7 @@ def format_current_ma(value: float) -> str:
     return str(int(value))
 
 
-def encode_normal(
-    channel: int, current_max_ma: float, current_set_ma: float
-) -> str:
+def encode_normal(channel: int, current_max_ma: float, current_set_ma: float) -> str:
     """Build the NORMAL command: store Imax/Iset for a channel, output unchanged."""
     imax = format_current_ma(current_max_ma)
     iset = format_current_ma(current_set_ma)
@@ -141,9 +139,7 @@ def require_ack(response: str, command: str) -> None:
     """
     check_response(response, command)
     if "##" not in response:
-        raise TransportError(
-            f"expected '##' ack for {command!r}, got {response!r}"
-        )
+        raise TransportError(f"expected '##' ack for {command!r}, got {response!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -171,9 +167,7 @@ def parse_current(response: str) -> tuple[float, float]:
     """
     tokens = response.replace("#", "").split()
     if len(tokens) < 2:
-        raise TransportError(
-            f"cannot parse NORMAL parameters from {response!r}"
-        )
+        raise TransportError(f"cannot parse NORMAL parameters from {response!r}")
     try:
         # int-strict like the proven parser: the device emits digit strings,
         # and anything float() would additionally admit (nan, inf, decimals)
@@ -254,9 +248,7 @@ def capabilities_for_module(module_number: str | None) -> ControllerCapabilities
     normalized = module_number.upper()
     match = _MODULE_PATTERN.search(normalized)
     if match is None:
-        raise TransportError(
-            f"cannot identify a module family in {module_number!r}"
-        )
+        raise TransportError(f"cannot identify a module family in {module_number!r}")
     family_text, channel_text = match.groups()
     try:
         family = ModuleType[family_text]

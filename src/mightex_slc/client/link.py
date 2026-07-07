@@ -118,27 +118,19 @@ def _roundtrip(
     return reply
 
 
-_OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(
-    OpenDeviceReply
-)
+_OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceReply)
 _CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(
     ConfigureNormalReply
 )
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(
     SetActiveModeReply
 )
-_CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(
-    CloseDeviceReply
-)
+_CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
 
 
-def open_device(
-    port: str | None = None
-) -> OpenDeviceOk:
+def open_device(port: str | None = None) -> OpenDeviceOk:
     """Open the controller at a serial target; None means the backend default."""
-    request = OpenDeviceRequest(
-        port=port
-    )
+    request = OpenDeviceRequest(port=port)
     return _roundtrip("open_device", request, _OPEN_DEVICE_REPLY)
 
 
@@ -158,25 +150,13 @@ def configure_normal(
     _roundtrip("configure_normal", request, _CONFIGURE_NORMAL_REPLY)
 
 
-def set_active_mode(
-    device_id: str,
-    channel: int,
-    mode: OperatingMode
-) -> None:
+def set_active_mode(device_id: str, channel: int, mode: OperatingMode) -> None:
     """Switch one channel's active working mode, effective immediately."""
-    request = SetActiveModeRequest(
-        device_id=device_id,
-        channel=channel,
-        mode=mode
-    )
+    request = SetActiveModeRequest(device_id=device_id, channel=channel, mode=mode)
     _roundtrip("set_active_mode", request, _SET_ACTIVE_MODE_REPLY)
 
 
-def close_device(
-    device_id: str
-) -> None:
+def close_device(device_id: str) -> None:
     """Close an opened controller; its device_id stops being usable."""
-    request = CloseDeviceRequest(
-        device_id=device_id
-    )
+    request = CloseDeviceRequest(device_id=device_id)
     _roundtrip("close_device", request, _CLOSE_DEVICE_REPLY)
