@@ -64,5 +64,6 @@ Two transports sit behind one interface:
 - `schemas/` — generated documentation artifacts
   (`python scripts/generate_schemas.py`); never hand-edited.
 - Tests and hardware bring-up probes live in the sibling `../examples/`
-  project, not in this package:
-  `cd ../examples && .venv/bin/python -m pytest tests -q`.
+  project, not in this package — see `../examples/README.md` for the
+  file-by-file run guide
+  (`cd ../examples && .venv/bin/python -m pytest tests -q`).
