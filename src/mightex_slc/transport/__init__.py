@@ -9,17 +9,17 @@
 """
 The transport package: the swappable bottom layer of the stack.
 
-It exposes one interface that the device model drives, with two implementations
-behind it: a pure-Python fake and the real serial path. This is what lets the
-whole stack be built and run with no hardware, then pointed at a real
-controller by changing one line. Beyond marking the package, this module
-carries the small factory that returns the chosen backend, so the server asks
-for a transport without hard-coding which one.
+It exposes one interface that the server device model drives, with two
+implementations behind it: a pure-Python fake and the real serial path. Both
+are constructed explicitly by name — FakeTransport() or RS232Transport() —
+never by ambient configuration, so which device is behind the server is always
+a value in scope at the call site. The backend re-exports are lazy so naming
+one backend never imports the other (and never imports pyserial).
 """
 
 from __future__ import annotations
 
-import os
+from typing import TYPE_CHECKING
 
 from .base import (
     CommandRejectedError,
@@ -31,36 +31,32 @@ from .base import (
     TransportOpenResult,
 )
 
-
-def create_transport(backend: str | None = None) -> Transport:
-    """Return the chosen transport backend.
-
-    Selection order: the backend argument, else the MIGHTEX_SLC_BACKEND
-    environment variable, else "rs232". The rs232 backend reads its default
-    serial port from MIGHTEX_SLC_PORT (unset means open_device must be given
-    an explicit port); "fake" is the in-memory simulated controller. Imports
-    are lazy so selecting one backend never imports the other.
-    """
-    name = backend or os.environ.get("MIGHTEX_SLC_BACKEND") or "rs232"
-    name = name.strip().lower()
-    if name == "rs232":
-        from .rs232 import RS232Transport
-
-        return RS232Transport(default_port=os.environ.get("MIGHTEX_SLC_PORT"))
-    if name == "fake":
-        from .fake import FakeTransport
-
-        return FakeTransport()
-    raise ValueError(f"unknown transport backend: {name!r}")
-
+if TYPE_CHECKING:
+    from .fake import FakeTransport
+    from .rs232 import RS232Transport
 
 __all__ = [
     "CommandRejectedError",
     "DeviceNotPresentError",
+    "FakeTransport",
     "InvalidHandleError",
+    "RS232Transport",
     "Transport",
     "TransportError",
     "TransportHandle",
     "TransportOpenResult",
-    "create_transport",
 ]
+
+
+def __getattr__(name: str):
+    # Lazy re-exports (PEP 562): naming one backend must never import the
+    # other, and RS232Transport drags in pyserial.
+    if name == "FakeTransport":
+        from .fake import FakeTransport
+
+        return FakeTransport
+    if name == "RS232Transport":
+        from .rs232 import RS232Transport
+
+        return RS232Transport
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,5 +1,13 @@
 # Backend Seam: Redesign Options
 
+> **Superseded (2026-07-07).** The refactor this option study fed has landed.
+> The executor-pinning core of Option 1 was adopted and extended: the
+> transport (not the executor) became the public injection point
+> (`open_device(transport=...)`), `open_fake_device()` became the explicit
+> fake spelling, and `create_transport`, `default_port`, and both environment
+> variables were deleted outright. See `architecture.md` for the current
+> design. Kept as history.
+
 Three grounded alternatives to the module-global `_backend` singleton in
 `client/link.py`, produced 2026-07-07 by three independent design passes
 plus an adversarial cross-review that stress-tested each sketch against the

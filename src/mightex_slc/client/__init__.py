@@ -9,14 +9,14 @@
 """
 The public surface of the library: what a user imports.
 
-This module exposes the top-level entry point (open_device) and re-exports the
-enums, types, and exception classes users are meant to reach. If a name is not
-surfaced here, it is not part of the public API. It mirrors the top level of
-the API skeleton.
+This module exposes the top-level entry points (open_device and
+open_fake_device) and re-exports the enums, types, and exception classes users
+are meant to reach. If a name is not surfaced here, it is not part of the
+public API. It mirrors the top level of the API skeleton.
 """
 
 from .channel import Channel
-from .controller import Controller, open_device
+from .controller import Controller, open_device, open_fake_device
 from .errors import (
     ControllerClosedError,
     DeviceCommandError,
@@ -40,4 +40,5 @@ __all__ = [
     "OperatingMode",
     "UnsupportedOperationError",
     "open_device",
+    "open_fake_device",
 ]

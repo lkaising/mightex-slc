@@ -81,9 +81,10 @@ class Transport(ABC):
     def open_device(self, port: str | None = None) -> TransportOpenResult:
         """Open the controller at a serial-port target and return its handle,
         serial number, and capabilities. port is the serial device path
-        (e.g. /dev/cu.usbserial-A6002xyz); None uses the backend's configured
-        default target, and a backend without one fails the open. A transport
-        never scans or probes ports — it opens only the one it is told to
+        (e.g. /dev/cu.usbserial-A6002xyz); each transport decides what None
+        means — the fake accepts and ignores it (it is the device at whatever
+        target the caller imagines), the rs232 backend refuses the open. A
+        transport never scans or probes ports — it opens only the one it is told to
         (opening is side-effecting: the backend enters host control by sending
         ECHOOFF, which is PC-Mode entry on MA/CA modules). Raises
         DeviceNotPresentError when nothing answers at the port, TransportError

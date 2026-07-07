@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 #  Filename: link.py
 #
-#  Purpose: Sends contract requests to the server and parses replies.
+#  Purpose: Sends contract requests to a request executor and parses replies.
 #
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
@@ -9,11 +9,14 @@
 """
 The client half of the contract seam, and the busiest file in this layer.
 
-For each call it builds the operation's Pydantic request model, serializes it
-with model_dump(mode="json"), calls into the server entry point, then parses the
-reply against that operation's reply union. On an ok reply it returns the success
-value; on an error reply it maps error_type to an exception and raises it. Every
-client method ultimately goes through here.
+Every function here is stateless plumbing over a caller-supplied
+RequestExecutor: build the operation's Pydantic request model, serialize it
+with model_dump(mode="json"), hand it to the executor, then parse the reply
+against that operation's reply union. On an ok reply it returns the success
+value; on an error reply it maps error_type to an exception and raises it.
+Every client method ultimately goes through here. The module holds no state of
+any kind: which executor runs a request is decided by the Controller it was
+pinned to at open, never by anything ambient.
 """
 
 from __future__ import annotations
@@ -49,40 +52,18 @@ from .errors import (
 )
 
 
-class Backend(Protocol):
-    """What link requires of a backend: run one request, return the reply dict."""
+class RequestExecutor(Protocol):
+    """The contract seam: run one serialized request, return the reply dict.
+
+    For a well-formed payload of a known operation, handle returns a contract
+    reply dict — an Ok or an Error envelope. It may raise for malformed
+    payloads or implementation bugs, but it never raises to signal device or
+    domain errors: those travel as Error replies and become exceptions only on
+    the client. The in-process Server is the one implementation today; a
+    daemon client would be another.
+    """
 
     def handle(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]: ...
-
-
-_backend: Backend | None = None
-
-
-def use_backend(backend: Backend | None) -> None:
-    """Install the backend link calls; None resets to the lazy default.
-
-    The default backend is constructed once, on first use, and then cached;
-    a changed environment takes effect only after use_backend(None).
-    """
-    global _backend
-    _backend = backend
-
-
-def call(operation: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """Send one serialized request to the backend and return the reply dict."""
-    global _backend
-    if _backend is None:
-        _backend = _default_backend()
-    return _backend.handle(operation, payload)
-
-
-def _default_backend() -> Backend:
-    # The one place the client reaches the server; imported lazily so the
-    # client carries no server dependency until first use.
-    from ..server.api import Server
-    from ..transport import create_transport
-
-    return Server(create_transport())
 
 
 _ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
@@ -101,12 +82,13 @@ def _raise_error(reply: Error) -> NoReturn:
 
 
 def _roundtrip[OkT: ContractModel](
+    executor: RequestExecutor,
     operation: str,
     request: ContractModel,
     reply_adapter: TypeAdapter[OkT | Error],
 ) -> OkT:
     """Send one request across the seam and return its ok reply model."""
-    reply_dict = call(operation, request.model_dump(mode="json"))
+    reply_dict = executor.handle(operation, request.model_dump(mode="json"))
     reply = reply_adapter.validate_python(reply_dict)
     if isinstance(reply, Error):
         _raise_error(reply)
@@ -119,13 +101,14 @@ _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetAc
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
 
 
-def open_device(port: str | None = None) -> OpenDeviceOk:
-    """Open the controller at a serial target; None means the backend default."""
+def open_device(executor: RequestExecutor, port: str | None = None) -> OpenDeviceOk:
+    """Open the controller at a serial target; the transport decides what None means."""
     request = OpenDeviceRequest(port=port)
-    return _roundtrip("open_device", request, _OPEN_DEVICE_REPLY)
+    return _roundtrip(executor, "open_device", request, _OPEN_DEVICE_REPLY)
 
 
 def configure_normal(
+    executor: RequestExecutor,
     device_id: str,
     channel: int,
     current_max_ma: float,
@@ -138,16 +121,21 @@ def configure_normal(
         current_max_ma=current_max_ma,
         current_set_ma=current_set_ma,
     )
-    _roundtrip("configure_normal", request, _CONFIGURE_NORMAL_REPLY)
+    _roundtrip(executor, "configure_normal", request, _CONFIGURE_NORMAL_REPLY)
 
 
-def set_active_mode(device_id: str, channel: int, mode: OperatingMode) -> None:
+def set_active_mode(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+    mode: OperatingMode,
+) -> None:
     """Switch one channel's active working mode, effective immediately."""
     request = SetActiveModeRequest(device_id=device_id, channel=channel, mode=mode)
-    _roundtrip("set_active_mode", request, _SET_ACTIVE_MODE_REPLY)
+    _roundtrip(executor, "set_active_mode", request, _SET_ACTIVE_MODE_REPLY)
 
 
-def close_device(device_id: str) -> None:
+def close_device(executor: RequestExecutor, device_id: str) -> None:
     """Close an opened controller; its device_id stops being usable."""
     request = CloseDeviceRequest(device_id=device_id)
-    _roundtrip("close_device", request, _CLOSE_DEVICE_REPLY)
+    _roundtrip(executor, "close_device", request, _CLOSE_DEVICE_REPLY)

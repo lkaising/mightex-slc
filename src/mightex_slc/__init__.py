@@ -9,10 +9,11 @@
 """
 The public import surface of mightex_slc.
 
-Everything here comes from the client package: open_device returns a
-Controller, a Controller hands out Channel proxies, the contract enums and the
-capabilities model describe the device, and the MightexLEDError tree is the
-error vocabulary. If a name is not importable from here, it is not part of the
+Everything here comes from the client package: open_device (or
+open_fake_device, the explicit no-hardware path) returns a Controller, a
+Controller hands out Channel proxies, the contract enums and the capabilities
+model describe the device, and the MightexLEDError tree is the error
+vocabulary. If a name is not importable from here, it is not part of the
 public API.
 """
 
@@ -29,6 +30,7 @@ from .client import (
     OperatingMode,
     UnsupportedOperationError,
     open_device,
+    open_fake_device,
 )
 
 __all__ = [
@@ -44,4 +46,5 @@ __all__ = [
     "OperatingMode",
     "UnsupportedOperationError",
     "open_device",
+    "open_fake_device",
 ]

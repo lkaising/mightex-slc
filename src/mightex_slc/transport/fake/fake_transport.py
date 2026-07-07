@@ -77,9 +77,9 @@ class FakeTransport(Transport):
 
     def open_device(self, port: str | None = None) -> TransportOpenResult:
         # port is accepted for interface compatibility and deliberately inert:
-        # the fake is the device at whichever port the caller targets (or the
-        # backend default when None). It does not model host serial-port
-        # availability, so opening with a path never proves that path exists.
+        # the fake is the device at whatever target the caller imagines, so
+        # None is fine. It does not model host serial-port availability, and
+        # opening with a path never proves that path exists.
         if self._open_handle is not None:
             raise TransportError("device is already open")
         self._open_handle = TransportHandle()

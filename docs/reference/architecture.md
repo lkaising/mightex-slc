@@ -1,6 +1,6 @@
 # mightex-slc — Architecture
 
-Status: source of truth as of 2026-07-06. Describes the design the current
+Status: source of truth as of 2026-07-07. Describes the design the current
 repo skeleton encodes and the `normal_mode_timed_on` slice proves. Device
 facts live in `device_and_protocol.md`; the step-by-step build order lives in
 `build_plan_normal_mode_timed_on.md`.
@@ -13,11 +13,11 @@ A Python library for Mightex SLC LED controllers with three properties:
 
 1. **A protocol-neutral public API.** No raw command or wire-protocol detail
    in any signature. The one place serial reality is visible is the open
-   boundary: `open_device(port=...)` names the serial target explicitly when
-   opening an RS232-backed controller (`None` means the backend's configured
-   default). Past open, users see `Controller` and `Channel` objects; whether
-   the backend is a fake, an in-process RS232 driver, or (someday) a socket
-   to a daemon is invisible.
+   boundary: `open_device("/dev/ttyUSB0")` names the serial target
+   explicitly, and `open_fake_device()` is the explicit no-hardware spelling.
+   Past open, users see `Controller` and `Channel` objects; whether the
+   transport is the fake or the real RS232 driver — and whether the server is
+   in-process or (someday) behind a socket — is invisible.
 2. **A validated contract seam.** Every operation crosses a client→server
    boundary as a plain JSON-mode dict, built from and re-validated against
    shared Pydantic models. Kept honest even in-process, so a later daemon
@@ -66,15 +66,38 @@ mightex_slc/__init__ the assembled public surface
   live handle; `impl/controller.py` and `impl/channel.py` are the real device
   model driving the transport; `errors.py` converts failures into the `Error`
   envelope.
-- **`client/`** — `link.py` is the seam client-side: build model →
-  `model_dump(mode="json")` → call server entry point → parse reply → map
-  `error_type` to an exception. `controller.py` holds the module-level
-  `open_device` function and the `Controller` proxy it constructs;
-  `channel.py` is the thin `Channel` proxy; `types.py` re-exports contract
-  shapes; `errors.py` holds the exception hierarchy.
+- **`client/`** — `link.py` is the seam client-side: stateless functions over
+  a caller-supplied executor — build model → `model_dump(mode="json")` →
+  `executor.handle(...)` → parse reply → map `error_type` to an exception.
+  `controller.py` holds `open_device` / `open_fake_device` and the
+  `Controller` proxy they construct; `channel.py` is the thin `Channel`
+  proxy; `types.py` re-exports contract shapes; `errors.py` holds the
+  exception hierarchy.
 
-The client never imports server classes; it reaches the server only through
-the one backend binding inside `link`. That keeps the seam a real boundary.
+The client holds no module state anywhere. `open_device` resolves the request
+executor exactly once — wrapping the transport in an in-process `Server` —
+and pins it to the `Controller` it returns, so a `device_id` and the executor
+whose session minted it always travel together and every later call,
+including close, deterministically reaches the same server. That keeps the
+seam a real boundary.
+
+**Two seams, two questions.** The stack has two independent injection points,
+and the vocabulary keeps them apart:
+
+| Term | Question it answers |
+|---|---|
+| `Transport` | what device is behind the server: the real RS232 driver or the in-memory fake |
+| `RequestExecutor` | where the server is and how requests reach it: an in-process object today, a socket someday |
+| `Server` | the current in-process `RequestExecutor` implementation |
+| `Controller` | a client proxy pinned to one `RequestExecutor` and one `device_id` |
+
+The invariant that keeps the eventual daemon a wiring change: **`link.py` is
+typed against `RequestExecutor` and never against `Transport`;
+`Server(transport)` is constructed in the client's `open_device` and nowhere
+deeper.** The transport being the public injection point (`transport=`) must
+not erode the executor seam being the architectural boundary. A daemon client
+is a new `RequestExecutor` implementation plus one additively introduced
+public injection point; no existing call site changes.
 
 ## 3. The public API surface
 
@@ -84,7 +107,7 @@ polished naming from the contract branch's API skeleton. For the slice:
 ```python
 from mightex_slc import OperatingMode, open_device
 
-PORT: str | None = None  # e.g. "/dev/ttyUSB0"; None = backend default (MIGHTEX_SLC_PORT)
+PORT: str = "/dev/ttyUSB0"  # always explicit; open_fake_device() is the no-hardware path
 
 with open_device(port=PORT) as controller:        # -> Controller (context manager)
     channel = controller.channel(1)               # one-based; pure client-side accessor
@@ -101,11 +124,13 @@ Decisions this implies (resolving stale skeleton docstrings):
 
 - `open_device` targets a serial port; there is no enumeration and no port
   scanning. Probing a port is a side-effecting act (opening sends ECHOOFF,
-  which enters PC Mode on MA/CA-MU variants), so the user names the port —
-  `None` means the backend's configured default target (the fake's one
-  simulated controller; the rs232 default set by constructor argument or the
-  `MIGHTEX_SLC_PORT` environment variable). An rs232 backend without a
-  configured default fails the open.
+  which enters PC Mode on MA/CA-MU variants), so the user names the port.
+  Omitting it raises a client-side `ValueError` unless a transport is
+  injected explicitly: `open_device("/dev/ttyUSB0")` and `open_fake_device()`
+  are the two normal spellings, and `open_device(transport=...)` is the
+  advanced/testing seam, accepting any `Transport` (the port passes through;
+  the fake accepts and ignores it). Nothing is ever read from the
+  environment, and the fake is never selected by omission.
 - There is no `initialize()` operation: host-control entry (ECHOOFF) is part
   of `open_device` itself, which is why opening is documented as
   side-effecting.
@@ -113,7 +138,7 @@ Decisions this implies (resolving stale skeleton docstrings):
   capability questions answer without a round trip. (The skeleton docstring's
   "holds a device_id and nothing else" is superseded.)
 - `channel(n)` never crosses the seam; it just constructs a `Channel` proxy
-  holding `(device_id, n)`.
+  carrying the controller's executor, its `device_id`, and `n`.
 - `configure_normal` takes flat `current_max_ma` / `current_set_ma` floats in
   mA; nothing rescales or rounds them. The rs232 backend serializes values
   faithfully and refuses what the wire cannot express (non-whole mA, and the
@@ -219,12 +244,16 @@ safety and retries (out of slice scope; strict request/reply plus buffer
 hygiene is why no-retries works). Port auto-discovery remains a deliberate
 cut; see §7.
 
-**Backend selection.** `transport.create_transport()` picks the backend:
-explicit argument, else the `MIGHTEX_SLC_BACKEND` environment variable
-(`rs232` | `fake`), defaulting to `rs232`; the rs232 default port comes from
-`MIGHTEX_SLC_PORT` when set. The client's `link._default_backend()` calls it
-(the default is constructed once and cached until `use_backend(None)`), and
-`link.use_backend()` remains the swap seam for tests.
+**Choosing the transport.** There is no factory and no environment variable:
+the transport is always constructed explicitly. `open_device("/dev/ttyUSB0")`
+builds an `RS232Transport` privately; `open_fake_device()` is the fake,
+explicit by name; `open_device(transport=...)` injects any `Transport` — how
+the tests wrap the full real stack (dispatch, session, capability policy)
+around a `FakeTransport` or a scripted-serial `RS232Transport`. Opening the
+same physical serial port twice is not supported: the rs232 open asks the OS
+for exclusive ownership where the platform supports it (POSIX flock via
+pyserial's `exclusive` flag; Windows ports are exclusive at the OS open
+already) and surfaces the refusal as a connection error.
 
 ## 7. Deliberate cuts (settled — do not reopen)
 

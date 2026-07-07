@@ -10,19 +10,19 @@
 The real hardware backend, implementing the transport interface over pyserial.
 
 It opens the serial port, sends commands encoded by the rs232 codec, and reads
-and decodes the replies. The port is always explicit or configured: open_device
-receives the serial device path, or falls back to a default bound at
-construction (constructor argument, environment, or config) when one exists;
-with no configured default, open_device(None) fails the open. This backend
-never scans or probes ports — opening a port is side-effecting (ECHOOFF enters
+and decodes the replies. The port is always explicit: open_device receives the
+serial device path, and open_device(None) fails the open. This backend never
+scans or probes ports — opening a port is side-effecting (ECHOOFF enters
 PC Mode on MA/CA modules), so it opens only the one it is told to. This is the
-file that touches an actual device, and it is where the single-owner-port
-concern (two processes cannot share one port) will need handling if it becomes
-real.
+file that touches an actual device. Sharing one physical port is not
+supported: on POSIX the open takes exclusive OS ownership (Windows ports are
+exclusive at the OS open already), and a port held elsewhere surfaces as
+DeviceNotPresentError.
 """
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import Callable
 
@@ -68,7 +68,6 @@ class RS232Transport(Transport):
 
     def __init__(
         self,
-        default_port: str | None = None,
         *,
         baudrate: int = _DEFAULT_BAUDRATE,
         timeout: float = _DEFAULT_TIMEOUT_S,
@@ -76,7 +75,6 @@ class RS232Transport(Transport):
     ) -> None:
         # serial_factory is the test seam: production uses pyserial, tests
         # inject a scripted double without patching imports.
-        self._default_port = default_port
         self._baudrate = baudrate
         self._timeout = timeout
         self._serial_factory = serial_factory
@@ -85,20 +83,23 @@ class RS232Transport(Transport):
     def open_device(self, port: str | None = None) -> TransportOpenResult:
         if self._handle is not None:
             raise TransportError("device is already open")
-        target = port or self._default_port
-        if target is None:
-            raise TransportError("no serial port specified and no default port configured")
+        if port is None:
+            raise TransportError("no serial port specified")
         try:
             ser = self._serial_factory(
-                port=target,
+                port=port,
                 baudrate=self._baudrate,
                 bytesize=serial.EIGHTBITS,
                 parity=serial.PARITY_NONE,
                 stopbits=serial.STOPBITS_ONE,
                 timeout=self._timeout,
+                # POSIX ttys allow concurrent opens; exclusive (flock) closes
+                # that hole so two transports cannot share one physical port.
+                # Windows ports are exclusive at the OS open already.
+                **({"exclusive": True} if os.name == "posix" else {}),
             )
         except serial.SerialException as exc:
-            raise DeviceNotPresentError(f"cannot open {target}: {exc}") from exc
+            raise DeviceNotPresentError(f"cannot open {port}: {exc}") from exc
         try:
             # Enter host control. ECHOOFF is PC-Mode entry on MA/CA modules
             # and hygiene elsewhere; it never returns a clean ack, so consume
@@ -108,7 +109,7 @@ class RS232Transport(Transport):
             # probe: an open tty proves nothing about a controller answering.
             text = self._exchange(ser, codec.DEVICE_INFO_COMMAND, require_response=False)
             if not text:
-                raise DeviceNotPresentError(f"no response to DEVICEINFO at {target}")
+                raise DeviceNotPresentError(f"no response to DEVICEINFO at {port}")
             codec.check_response(text, codec.DEVICE_INFO_COMMAND)
             info = codec.parse_device_info(text)
             if info.module_number is None or info.serial_number is None:

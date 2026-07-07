@@ -34,15 +34,20 @@ pip install -e .
 
 Runtime dependencies: `pydantic`, `pyserial`. Python ≥ 3.11.
 
-## Backend selection
+## Choosing a transport
 
-Two transports sit behind one interface:
+Two transports sit behind one interface, each opened explicitly by name —
+nothing is ever read from the environment:
 
-- **rs232** (default) — the real serial backend. The port is the one you name:
-  pass it to `open_device(port=...)`, or set `MIGHTEX_SLC_PORT` as the default.
-  The library never scans or probes serial ports.
+- **rs232** — the real serial backend. The port is always the one you name:
+  `open_device(port="/dev/ttyUSB0")`. The library never scans or probes
+  serial ports, and omitting the port fails loudly.
 - **fake** — an in-memory simulated controller for development and tests.
-  Select it with `MIGHTEX_SLC_BACKEND=fake`.
+  Open it with `open_fake_device()`; it is never selected implicitly.
+
+For tests and custom transports, `open_device(transport=...)` accepts any
+`mightex_slc.transport.Transport` instance and runs the full real stack over
+it.
 
 ## Safety notes (real LEDs)
 

@@ -1,5 +1,14 @@
 # The Backend Seam
 
+> **Superseded (2026-07-07).** This document analyzes the module-global
+> backend design that the backend-seam refactor removed: `_backend`,
+> `use_backend()`, the cached lazy default, `create_transport()`, and the
+> `MIGHTEX_SLC_BACKEND` / `MIGHTEX_SLC_PORT` environment variables no longer
+> exist. The current design — a `RequestExecutor` pinned to each `Controller`
+> at open, `transport=` as the public injection point, `open_fake_device()`
+> as the explicit fake spelling — is described in `architecture.md` (§2, §3,
+> §6). Kept as historical analysis; symbols below no longer exist in the code.
+
 How the `Backend` protocol in `client/link.py` works — locally, across the
 package, and as the load-bearing boundary of the whole architecture.
 
