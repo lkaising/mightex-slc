@@ -18,7 +18,7 @@ client method ultimately goes through here.
 
 from __future__ import annotations
 
-from typing import Any, NoReturn, Protocol, TypeVar
+from typing import Any, NoReturn, Protocol
 
 from pydantic import TypeAdapter
 
@@ -85,8 +85,6 @@ def _default_backend() -> Backend:
     return Server(create_transport())
 
 
-_OkT = TypeVar("_OkT", bound=ContractModel)
-
 # VALUE_ERROR is defensive: validation raises ValueError client-side before a
 # request is sent, so the server never emits it today.
 _ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
@@ -105,11 +103,11 @@ def _raise_error(reply: Error) -> NoReturn:
     raise _ERROR_EXCEPTIONS[reply.error_type](reply.message)
 
 
-def _roundtrip(
+def _roundtrip[OkT: ContractModel](
     operation: str,
     request: ContractModel,
-    reply_adapter: TypeAdapter[_OkT | Error],
-) -> _OkT:
+    reply_adapter: TypeAdapter[OkT | Error],
+) -> OkT:
     """Send one request across the seam and return its ok reply model."""
     reply_dict = call(operation, request.model_dump(mode="json"))
     reply = reply_adapter.validate_python(reply_dict)
