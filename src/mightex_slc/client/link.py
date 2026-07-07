@@ -57,27 +57,6 @@ class Backend(Protocol):
 
 _backend: Backend | None = None
 
-_OkT = TypeVar("_OkT", bound=ContractModel)
-
-_OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceReply)
-_CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(
-    ConfigureNormalReply
-)
-_SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(
-    SetActiveModeReply
-)
-_CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
-
-# VALUE_ERROR is defensive: validation raises ValueError client-side before a
-# request is sent, so the server never emits it today.
-_ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
-    ErrorType.VALUE_ERROR: ValueError,
-    ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
-    ErrorType.DEVICE_CONNECTION: DeviceConnectionError,
-    ErrorType.DEVICE_NOT_FOUND: DeviceNotFoundError,
-    ErrorType.UNSUPPORTED_OPERATION: UnsupportedOperationError,
-}
-
 
 def use_backend(backend: Backend | None) -> None:
     """Install the backend link calls; None resets to the lazy default.
@@ -106,6 +85,19 @@ def _default_backend() -> Backend:
     return Server(create_transport())
 
 
+_OkT = TypeVar("_OkT", bound=ContractModel)
+
+# VALUE_ERROR is defensive: validation raises ValueError client-side before a
+# request is sent, so the server never emits it today.
+_ERROR_EXCEPTIONS: dict[ErrorType, type[Exception]] = {
+    ErrorType.VALUE_ERROR: ValueError,
+    ErrorType.CONTROLLER_CLOSED: ControllerClosedError,
+    ErrorType.DEVICE_CONNECTION: DeviceConnectionError,
+    ErrorType.DEVICE_NOT_FOUND: DeviceNotFoundError,
+    ErrorType.UNSUPPORTED_OPERATION: UnsupportedOperationError,
+}
+
+
 def _raise_error(reply: Error) -> NoReturn:
     """Raise the client exception matching one error reply."""
     if reply.error_type is ErrorType.DEVICE_COMMAND:
@@ -126,9 +118,28 @@ def _roundtrip(
     return reply
 
 
-def open_device(port: str | None = None) -> OpenDeviceOk:
+_OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(
+    OpenDeviceReply
+)
+_CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(
+    ConfigureNormalReply
+)
+_SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(
+    SetActiveModeReply
+)
+_CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(
+    CloseDeviceReply
+)
+
+
+def open_device(
+    port: str | None = None
+) -> OpenDeviceOk:
     """Open the controller at a serial target; None means the backend default."""
-    return _roundtrip("open_device", OpenDeviceRequest(port=port), _OPEN_DEVICE_REPLY)
+    request = OpenDeviceRequest(
+        port=port
+    )
+    return _roundtrip("open_device", request, _OPEN_DEVICE_REPLY)
 
 
 def configure_normal(
@@ -147,13 +158,25 @@ def configure_normal(
     _roundtrip("configure_normal", request, _CONFIGURE_NORMAL_REPLY)
 
 
-def set_active_mode(device_id: str, channel: int, mode: OperatingMode) -> None:
+def set_active_mode(
+    device_id: str,
+    channel: int,
+    mode: OperatingMode
+) -> None:
     """Switch one channel's active working mode, effective immediately."""
-    request = SetActiveModeRequest(device_id=device_id, channel=channel, mode=mode)
+    request = SetActiveModeRequest(
+        device_id=device_id,
+        channel=channel,
+        mode=mode
+    )
     _roundtrip("set_active_mode", request, _SET_ACTIVE_MODE_REPLY)
 
 
-def close_device(device_id: str) -> None:
+def close_device(
+    device_id: str
+) -> None:
     """Close an opened controller; its device_id stops being usable."""
-    request = CloseDeviceRequest(device_id=device_id)
+    request = CloseDeviceRequest(
+        device_id=device_id
+    )
     _roundtrip("close_device", request, _CLOSE_DEVICE_REPLY)
