@@ -23,8 +23,8 @@ class ErrorType(StrEnum):
     # sent. Deliberately deferred until server/client error behavior exists
     # (post-Phase 1).
     VALUE_ERROR = "ValueError"
-    CONTROLLER_CLOSED = "ControllerClosedError"
     DEVICE_CONNECTION = "DeviceConnectionError"
     DEVICE_NOT_FOUND = "DeviceNotFoundError"
     DEVICE_COMMAND = "DeviceCommandError"
     UNSUPPORTED_OPERATION = "UnsupportedOperationError"
+    CONTROLLER_CLOSED = "ControllerClosedError"

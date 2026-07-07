@@ -1,42 +1,42 @@
 # ------------------------------------------------------------------------------
 #  Filename: errors.py
 #
-#  Purpose: Exception hierarchy the client raises from error replies.
+#  Purpose: Client-side exception hierarchy for failed controller operations.
 #
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
 
-"""
-The exception hierarchy the client raises, rooted at MightexLEDError.
+"""Client-side exceptions raised for failed Mightex LED controller operations.
 
-The tree covers connection, not-found, command, unsupported-operation, and
-controller-closed errors. These are raised on the client side: when a reply comes
-back as an error envelope, link reads its error_type and raises the matching class
-from here. It is the human-facing error vocabulary, the counterpart to the
-server's exception-to-envelope mapping. Argument validation is not part of this
-tree: bad arguments raise plain ValueError at request construction.
+These exceptions form the library-specific error hierarchy rooted at
+MightexLEDError. They are raised when an operation fails after crossing the client
+API boundary, such as when the controller cannot be opened, a command is rejected,
+an operation is unsupported, or a previously opened controller has been closed.
+
+Argument validation is intentionally outside this hierarchy. Invalid user-provided
+arguments should raise plain ValueError during request construction.
 """
 
 from __future__ import annotations
 
 
 class MightexLEDError(Exception):
-    """Root of every error the library raises for a failed operation."""
+    """Base class for all Mightex LED controller operation errors."""
 
 
 class DeviceConnectionError(MightexLEDError):
-    """The connection to the controller failed or could not be established."""
+    """Raised when a controller connection cannot be established or maintained."""
 
 
 class DeviceNotFoundError(DeviceConnectionError):
-    """No controller was present at the requested serial target."""
+    """Raised when no controller is found at the requested serial target."""
 
 
 class DeviceCommandError(MightexLEDError):
-    """The controller rejected a command.
+    """Raised when the controller rejects a command.
 
-    Carries the device's error code when the controller reports one; code is
-    None otherwise.
+    Attributes:
+        code: The device-reported error code, when available.
     """
 
     def __init__(self, message: str, code: int | None = None) -> None:
@@ -45,11 +45,11 @@ class DeviceCommandError(MightexLEDError):
 
 
 class UnsupportedOperationError(MightexLEDError):
-    """The requested operation is not supported."""
+    """Raised when the requested operation is not supported by the controller."""
 
 
 class ControllerClosedError(MightexLEDError):
-    """The controller behind this device_id is no longer open."""
+    """Raised when an operation is attempted on a closed controller handle."""
 
 
 __all__ = [
