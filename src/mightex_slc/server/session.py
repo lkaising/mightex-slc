@@ -22,6 +22,15 @@ from uuid import uuid4
 from ..transport import TransportHandle
 
 
+class UnknownDeviceError(Exception):
+    """An operation referenced a device_id the session does not hold.
+
+    Raised both for ids that were never registered and for ids already
+    removed by close; either way the controller is not usable, so the server
+    maps this to a controller-closed error reply.
+    """
+
+
 class Session:
     """Registry of open devices, mapping public device_id to live handle.
 
@@ -37,3 +46,21 @@ class Session:
         device_id = uuid4().hex
         self._handles[device_id] = handle
         return device_id
+
+    def get(self, device_id: str) -> TransportHandle:
+        """Return the live handle for a device_id."""
+        try:
+            return self._handles[device_id]
+        except KeyError:
+            raise UnknownDeviceError(
+                f"unknown or closed device_id: {device_id!r}"
+            ) from None
+
+    def pop(self, device_id: str) -> TransportHandle:
+        """Remove and return the live handle for a device_id."""
+        try:
+            return self._handles.pop(device_id)
+        except KeyError:
+            raise UnknownDeviceError(
+                f"unknown or closed device_id: {device_id!r}"
+            ) from None
