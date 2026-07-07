@@ -10,18 +10,19 @@
 The Controller proxy: the client-side stand-in for a device that lives on the
 server.
 
-open_device lives here too: it is the library's entry point. It resolves the
+open_device lives here too as the library's entry point. It resolves the
 request executor exactly once — wrapping the given (or freshly constructed)
 transport in an in-process Server — crosses the seam, and pins that executor
 to the Controller it returns, so the device_id and the only thing that can
 resolve it always travel together. open_fake_device is the explicit
-no-hardware spelling; the fake is never reachable by omission. A Controller
-holds the executor, the device_id returned at open, and the capabilities
-reported alongside it, cached so capability questions answer without a round
-trip. channel(n) is a pure client-side accessor: it builds a Channel proxy
-carrying the same executor without crossing the seam. Context-manager support
-(with open_device(...) as ctrl) is wired here, so the controller closes itself
-on exit.
+no-hardware spelling; the fake is never reachable by omission.
+
+A Controller holds the executor, the device_id returned at open, and the
+capabilities reported alongside it, cached so capability questions answer
+without a round trip. channel(n) is a pure client-side accessor: it builds a
+Channel proxy carrying the same executor without crossing the seam.
+Context-manager support (with open_device(...) as ctrl) is wired here, so the
+controller closes itself on exit.
 """
 
 from __future__ import annotations
@@ -39,10 +40,10 @@ def open_device(port: str | None = None, *, transport: Transport | None = None) 
 
     The two normal spellings are open_device("/dev/ttyUSB0") for hardware and
     open_fake_device() for the simulated controller. transport= is the
-    advanced seam — tests and custom transports — accepting any Transport; the
-    port passes through to it (the fake accepts and ignores it). Omitting both
-    raises ValueError before anything crosses the seam: this library never
-    simulates by omission.
+    advanced seam for tests and custom transports: any Transport is accepted,
+    and port passes through to it (the fake accepts and ignores it). Omitting
+    both raises ValueError before anything crosses the seam: this library
+    never simulates by omission.
     """
     if port is None and transport is None:
         raise ValueError(
@@ -97,7 +98,7 @@ class Controller:
         return self._closed
 
     def channel(self, number: int) -> Channel:
-        """Return a proxy for one one-based channel; never crosses the seam."""
+        """Return a proxy for the given channel (1-based); never crosses the seam."""
         return Channel(self._executor, self._device_id, number)
 
     def close(self) -> None:
