@@ -107,26 +107,18 @@ class Controller:
 
     @property
     def device_id(self) -> str:
-        """The opaque identifier assigned when this controller was opened."""
         return self._device_id
 
     @property
     def capabilities(self) -> ControllerCapabilities:
-        """Capabilities reported by the controller when it was opened."""
         return self._capabilities
 
     @property
     def is_closed(self) -> bool:
-        """Whether this controller has been closed."""
         return self._closed
 
     def channel(self, number: int) -> Channel:
         """Return a proxy for one channel of this controller.
-
-        This is a local accessor: it does not contact the device, and
-        nothing is checked here. An out-of-range channel number or a closed
-        controller is rejected by the first operation called on the
-        returned Channel.
 
         Args:
             number: One-based channel number, from 1 up to the channel_count
@@ -138,12 +130,7 @@ class Controller:
         return Channel(self._executor, self._device_id, number)
 
     def close(self) -> None:
-        """Close this controller and release its device connection.
-
-        Calling close() more than once is safe: once the controller is
-        closed, further calls do nothing. When the controller is used as a
-        context manager, close() runs automatically on exit.
-        """
+        """Close this controller and release its device connection."""
         if self._closed:
             return
         link.close_device(self._executor, self._device_id)
