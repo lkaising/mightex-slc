@@ -19,9 +19,13 @@ session.
 
 from __future__ import annotations
 
-from ...contract import ControllerCapabilities
+from typing import TYPE_CHECKING
+
 from ...transport import CommandRejectedError, Transport, TransportHandle
 from .channel import ChannelModel
+
+if TYPE_CHECKING:
+    from ...contract import ControllerCapabilities
 
 
 class ControllerModel:

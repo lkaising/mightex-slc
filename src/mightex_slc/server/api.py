@@ -21,11 +21,13 @@ of the stack moving.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..transport import Transport
 from .dispatch import dispatch
 from .session import Session
+
+if TYPE_CHECKING:
+    from ..transport import Transport
 
 
 class Server:

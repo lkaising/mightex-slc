@@ -40,6 +40,7 @@ select = [
     "I",   # import sorting
     "B",   # flake8-bugbear: likely bugs / unsafe patterns
     "UP",  # pyupgrade: modern Python syntax
+    "TC",  # flake8-type-checking: annotation-only imports go under TYPE_CHECKING
     "RUF", # Ruff-specific rules
 ]
 
@@ -51,6 +52,15 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "src/mightex_slc/**/__init__.py" = [
     "F401", # allow intentional public re-exports
+]
+
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "mightex_slc.contract.base.ContractModel",
+    "mightex_slc.contract.operations.base.DeviceRequest",
+    "mightex_slc.contract.operations.base.ChannelRequest",
 ]
 
 

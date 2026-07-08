@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import os
 import time
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import serial
 
-from ...contract import OperatingMode
 from ..base import (
     DeviceNotPresentError,
     InvalidHandleError,
@@ -38,6 +37,11 @@ from ..base import (
     TransportOpenResult,
 )
 from . import codec
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from ...contract import OperatingMode
 
 # The proven serial recipe, hardware-verified by the predecessor project
 # (device_and_protocol.md §9): commands end LF+CR — deliberately not the

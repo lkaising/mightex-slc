@@ -18,8 +18,7 @@ where an operation name plus a payload becomes a call on the right controller.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..contract import (
     CloseDeviceOk,
@@ -36,6 +35,9 @@ from ..transport import Transport, TransportError
 from .errors import to_error, unsupported_operation
 from .impl import ControllerModel
 from .session import Session, UnknownDeviceError
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def dispatch(

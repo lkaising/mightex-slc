@@ -17,9 +17,11 @@ first. It is the lifecycle and ownership manager for open devices.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from .impl import ControllerModel
+if TYPE_CHECKING:
+    from .impl import ControllerModel
 
 
 class UnknownDeviceError(Exception):

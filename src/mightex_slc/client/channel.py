@@ -21,8 +21,12 @@ the request model.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from . import link
-from .types import OperatingMode
+
+if TYPE_CHECKING:
+    from .types import OperatingMode
 
 
 class Channel:
