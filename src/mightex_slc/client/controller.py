@@ -43,24 +43,24 @@ def open_device(port: str | None = None, *, transport: Transport | None = None) 
     Args:
         port: Serial port path of the controller, such as "/dev/ttyUSB0".
         transport: Optional transport implementation for tests or custom
-            integrations; port is forwarded to it. Use open_fake_device()
+            integrations; port is forwarded to it. Use `open_fake_device()`
             for the built-in simulated controller.
 
     Returns:
-        A Controller for the opened device.
+        A `Controller` for the opened device.
 
     Raises:
-        ValueError: If neither port nor transport is given.
+        ValueError: If neither `port` nor `transport` is given.
         DeviceNotFoundError: If nothing responds at the requested port.
         DeviceConnectionError: If the transport cannot be opened or the
             connection fails for another reason.
     """
     if port is None and transport is None:
         raise ValueError(
-            "no serial port specified: pass one, e.g. open_device('/dev/ttyUSB0'), "
-            "or use open_fake_device() for the in-memory simulated controller"
+            "open_device() requires a serial port, e.g. '/dev/ttyUSB0'; "
+            "use open_fake_device() for the simulated controller"
         )
-    # Local imports: neither pyserial nor the server package loads until a device is opened.
+    # Delay hardware/server imports until a device is opened.
     if transport is None:
         from ..transport.rs232 import RS232Transport
 
@@ -73,10 +73,10 @@ def open_device(port: str | None = None, *, transport: Transport | None = None) 
 
 
 def open_fake_device() -> Controller:
-    """Open the built-in simulated controller; no hardware is required.
+    """Open the built-in simulated controller.
 
     Returns:
-        A Controller for the simulated device.
+        A `Controller` for the simulated device.
     """
     from ..transport.fake import FakeTransport
 
@@ -84,13 +84,7 @@ def open_fake_device() -> Controller:
 
 
 class Controller:
-    """An opened Mightex SLC controller.
-
-    Returned by open_device() and open_fake_device(); users normally do not
-    construct this class directly. A Controller exposes cached capabilities,
-    creates one-based Channel proxies, and closes the device connection. Use it
-    as a context manager when possible.
-    """
+    """An opened Mightex SLC controller."""
 
     __slots__ = ("_capabilities", "_closed", "_device_id", "_executor")
 
