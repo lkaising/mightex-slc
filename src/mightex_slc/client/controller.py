@@ -118,14 +118,14 @@ class Controller:
         return self._closed
 
     def channel(self, number: int) -> Channel:
-        """Return a proxy for one channel of this controller.
+        """Return a proxy for one controller channel.
 
         Args:
-            number: One-based channel number, from 1 up to the channel_count
-                reported in capabilities.
+            number: 1-based channel number, from 1 through
+                `capabilities.channel_count`.
 
         Returns:
-            A Channel addressing that channel of this controller.
+            A `Channel` bound to this controller and channel number.
         """
         return Channel(self._executor, self._device_id, number)
 
