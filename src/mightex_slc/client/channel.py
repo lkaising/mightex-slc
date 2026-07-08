@@ -26,7 +26,7 @@ from .types import OperatingMode
 
 
 class Channel:
-    """One channel of an open controller, addressed by its one-based number."""
+    """One channel of an open controller, addressed by its 1-based channel number."""
 
     def __init__(self, executor: link.RequestExecutor, device_id: str, number: int) -> None:
         self._executor = executor
@@ -34,8 +34,11 @@ class Channel:
         self._number = number
 
     @property
+    def device_id(self) -> str:
+        return self._device_id
+
+    @property
     def number(self) -> int:
-        """The one-based channel number this proxy addresses."""
         return self._number
 
     def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
@@ -44,14 +47,14 @@ class Channel:
         Args:
             current_max_ma: NORMAL-mode current limit, in mA. Must be >= 0.
             current_set_ma: NORMAL-mode set current, in mA. Must be >= 0 and
-                no greater than current_max_ma.
+                no greater than `current_max_ma`.
 
         Raises:
-            ValueError: If either current is negative or current_set_ma
-                exceeds current_max_ma.
+            ValueError: If either current is negative or `current_set_ma`
+                exceeds `current_max_ma`.
             DeviceCommandError: If the device rejects the values or the
-                channel number is out of range for the module.
-            ControllerClosedError: If the controller has been closed.
+                channel `number` is out of range for the module.
+            ControllerClosedError: If the `Controller` has been closed.
             DeviceConnectionError: If communication with the device fails.
         """
         link.configure_normal(
@@ -66,14 +69,14 @@ class Channel:
         """Switch this channel's active working mode, effective immediately.
 
         Args:
-            mode: The OperatingMode to make active: DISABLE, NORMAL, STROBE,
-                or TRIGGER.
+            mode: The `OperatingMode` to make active: `DISABLE`, `NORMAL`,
+                `STROBE`, or `TRIGGER`.
 
         Raises:
-            ValueError: If mode is not a valid OperatingMode.
-            DeviceCommandError: If the channel number is out of range for the
-                module or the module does not support the requested mode.
-            ControllerClosedError: If the controller has been closed.
+            ValueError: If `mode` is not a valid `OperatingMode`.
+            DeviceCommandError: If the channel `number` is out of range for
+                the module or the module does not support the requested mode.
+            ControllerClosedError: If the `Controller` has been closed.
             DeviceConnectionError: If communication with the device fails.
         """
         link.set_active_mode(self._executor, self._device_id, self._number, mode)
