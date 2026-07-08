@@ -6,13 +6,11 @@
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
 
-"""
-The Controller proxy: the client-side stand-in for a device that lives on the
-server.
+"""The Controller proxy: the client-side stand-in for a device on the server.
 
 open_device lives here too as the library's entry point. It resolves the
-request executor exactly once — wrapping the given (or freshly constructed)
-transport in an in-process Server — crosses the seam, and pins that executor
+request executor exactly once, wrapping the given (or freshly constructed)
+transport in an in-process Server, crosses the seam, and pins that executor
 to the Controller it returns, so the device_id and the only thing that can
 resolve it always travel together. open_fake_device is the explicit
 no-hardware spelling; the fake is never reachable by omission.
@@ -27,12 +25,16 @@ controller closes itself on exit.
 
 from __future__ import annotations
 
-from types import TracebackType
+from typing import TYPE_CHECKING, Self
 
-from ..transport import Transport
 from . import link
 from .channel import Channel
-from .types import ControllerCapabilities
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from ..transport import Transport
+    from .types import ControllerCapabilities
 
 
 def open_device(port: str | None = None, *, transport: Transport | None = None) -> Controller:
@@ -82,12 +84,15 @@ def open_fake_device() -> Controller:
 
 
 class Controller:
-    """One open controller: the executor it was opened on plus its device_id.
+    """An opened Mightex SLC controller.
 
-    The pairing is the point: a device_id is only meaningful to the executor
-    whose session minted it, so they travel together and every later call —
-    including close — deterministically reaches the same server.
+    Returned by open_device() and open_fake_device(); users normally do not
+    construct this class directly. A Controller exposes cached capabilities,
+    creates one-based Channel proxies, and closes the device connection. Use it
+    as a context manager when possible.
     """
+
+    __slots__ = ("_capabilities", "_closed", "_device_id", "_executor")
 
     def __init__(
         self,
@@ -101,22 +106,57 @@ class Controller:
         self._closed = False
 
     @property
+    def device_id(self) -> str:
+        """The opaque identifier assigned when this controller was opened."""
+        return self._device_id
+
+    @property
+    def capabilities(self) -> ControllerCapabilities:
+        """Capabilities reported by the controller when it was opened."""
+        return self._capabilities
+
+    @property
     def is_closed(self) -> bool:
-        """Whether close() has completed on this controller."""
+        """Whether this controller has been closed."""
         return self._closed
 
     def channel(self, number: int) -> Channel:
-        """Return a proxy for the given channel (1-based); never crosses the seam."""
+        """Return a proxy for one channel of this controller.
+
+        Args:
+            number: One-based channel number.
+
+        Returns:
+            A Channel for the requested channel.
+
+        Raises:
+            ...
+        """
+        if number < 1:
+            ...
+        self._ensure_open()
         return Channel(self._executor, self._device_id, number)
 
     def close(self) -> None:
-        """Close the controller; after the first success, later calls are no-ops."""
+        """Close this controller.
+
+        Calling close() more than once is safe. If closing fails, the controller
+        remains open so the operation can be retried.
+
+        Raises:
+            ...
+        """
         if self._closed:
             return
         link.close_device(self._executor, self._device_id)
         self._closed = True
 
-    def __enter__(self) -> Controller:
+    def _ensure_open(self) -> None:
+        """Raise if this controller has already been closed."""
+        if self._closed:
+            raise ValueError(f"operation on closed controller {self._device_id!r}")
+
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -126,3 +166,7 @@ class Controller:
         tb: TracebackType | None,
     ) -> None:
         self.close()
+
+    def __repr__(self) -> str:
+        state = "closed" if self._closed else "open"
+        return f"<{type(self).__name__} device_id={self._device_id!r} state={state}>"
