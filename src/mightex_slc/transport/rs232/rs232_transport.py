@@ -99,10 +99,12 @@ class RS232Transport(Transport):
         self._handle: _RS232Handle | None = None
 
     def open_device(self, port: str | None = None) -> TransportOpenResult:
+        """Open the RS232 controller on a serial port and return its transport handle."""
         if self._handle is not None:
             raise TransportError("device is already open")
         if port is None:
             raise TransportError("no serial port specified")
+
         serial_port = self._open_serial_port(port)
         try:
             serial_number, capabilities = self._identify_controller(serial_port, port)
@@ -110,9 +112,12 @@ class RS232Transport(Transport):
             # BaseException on purpose: never leak a half-open port.
             _close_quietly(serial_port)
             raise
-        self._handle = _RS232Handle(serial_port)
+
+        handle = _RS232Handle(serial_port)
+        self._handle = handle
+
         return TransportOpenResult(
-            handle=self._handle,
+            handle=handle,
             serial_number=serial_number,
             capabilities=capabilities,
         )
