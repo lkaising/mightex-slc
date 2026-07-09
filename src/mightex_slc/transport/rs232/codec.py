@@ -146,6 +146,7 @@ def _field_after(response: str, label: str) -> str | None:
     fields = response.split(label, 1)[1].split()
     return fields[0] if fields else None
 
+
 def parse_device_info(response: str) -> DeviceInfo:
     """Parse a DEVICEINFO response by keyword, returning missing fields as None."""
     return DeviceInfo(
@@ -222,8 +223,7 @@ def capabilities_for_module(module_number: str | None) -> ControllerCapabilities
     row = _FAMILY_TABLE.get(family)
     if row is None:
         raise TransportError(
-            f"no documented capabilities for module family {family.name!r} "
-            f"in {module_number!r}"
+            f"no documented capabilities for module family {family.name!r} in {module_number!r}"
         )
 
     module_upper = module_number.upper()
