@@ -81,7 +81,5 @@ class ControllerModel:
         self._transport.close_device(self._handle)
 
     def __repr__(self) -> str:
-        return (
-            f"<{type(self).__name__} serial_number={self._serial_number!r} "
-            f"module={self._capabilities.module_type.name}>"
-        )
+        module = self._capabilities.module_type.name
+        return f"<{type(self).__name__} serial_number={self._serial_number!r} module={module}>"
