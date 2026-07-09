@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 class Server:
     """The in-process server: one transport binding and one session registry."""
 
+    __slots__ = ("_session", "_transport")
+
     def __init__(self, transport: Transport) -> None:
         self._transport = transport
         self._session = Session()
@@ -40,3 +42,7 @@ class Server:
     def handle(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Run one serialized request and return its JSON-mode reply dict."""
         return dispatch(operation, payload, session=self._session, transport=self._transport)
+
+    def __repr__(self) -> str:
+        transport = type(self._transport).__name__
+        return f"<{type(self).__name__} transport={transport} {self._session!r}>"

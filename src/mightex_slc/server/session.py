@@ -41,6 +41,8 @@ class Session:
     server.
     """
 
+    __slots__ = ("_models",)
+
     def __init__(self) -> None:
         self._models: dict[str, ControllerModel] = {}
 
@@ -63,3 +65,6 @@ class Session:
             return self._models.pop(device_id)
         except KeyError:
             raise UnknownDeviceError(f"unknown or closed device_id: {device_id!r}") from None
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} devices={len(self._models)}>"
