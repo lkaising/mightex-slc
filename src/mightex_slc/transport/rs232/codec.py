@@ -7,38 +7,29 @@
 # ------------------------------------------------------------------------------
 
 """
-The private wire format: the one place the RS232 protocol lives.
+The RS232 wire format: every command and response string, in one place.
 
-It encodes device operations into the controller's ASCII command strings and
-decodes the responses. It is deliberately kept out of the contract; the client
-and server deal in Pydantic models, and only this file knows what the bytes on
-the wire look like.
+All of it is pure string-to-string work, which keeps the protocol testable
+without hardware. The rs232 transport owns the bytes around these strings
+(terminators, buffer hygiene, timing); the client and server deal only in
+contract models.
 
-Everything here is pure string-to-string work: no serial port, no timing, no
-I/O. That purity is what makes the wire format testable without hardware. The
-rs232 transport owns the bytes around these strings — terminators, buffer
-hygiene, and timing.
-
-Currents are serialized faithfully as whole milliamps: integral values become
-their integer text, and a value the wire format cannot express exactly is
-refused rather than rounded. The FA/FV/XA/XV families, whose wire unit is
-0.1 mA rather than 1 mA, are refused at open for the same reason — faithful
-mA serialization would drive them 10x low, so supporting them needs a
-deliberate unit-scaling revisit. The bench SA family is identity-units.
+Currents serialize faithfully as whole milliamps: integral values become
+their integer text, and a value the wire cannot express exactly is refused
+rather than rounded.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, NamedTuple
 
 from ...contract import ControllerCapabilities, ModuleType, OperatingMode
 from ..base import CommandRejectedError, TransportError
 
-# Parameterless commands, sent verbatim. ECHOOFF is the host-control entry
-# (PC-Mode on MA/CA modules) and the one command that never returns a clean
-# ack; DEVICEINFO returns the one bare, un-prefixed response string.
+# Sent verbatim. ECHOOFF (host-control entry; PC-Mode on MA/CA) never returns
+# a clean ack; DEVICEINFO returns the one bare, un-prefixed response.
 ECHO_OFF_COMMAND: Final[str] = "ECHOOFF"
 DEVICE_INFO_COMMAND: Final[str] = "DEVICEINFO"
 
@@ -47,8 +38,8 @@ DEVICE_INFO_COMMAND: Final[str] = "DEVICEINFO"
 class DeviceInfo:
     """The fields a DEVICEINFO response may carry; each None when absent.
 
-    The vendor gives no grammar for this response — only sample strings that
-    differ between documents and the real unit — so every field is
+    The vendor gives no grammar for this response, only sample strings that
+    differ between documents and the real unit, so every field is
     independently optional and the caller decides what a missing one means.
     """
 
@@ -57,9 +48,7 @@ class DeviceInfo:
     serial_number: str | None
 
 
-# ---------------------------------------------------------------------------
-# Encoding: operations to command strings (no terminator; framing is I/O)
-# ---------------------------------------------------------------------------
+# --- Encoding: operations to command strings (no terminator; framing is I/O) ---
 
 
 def format_current_ma(value: float) -> str:
@@ -71,9 +60,7 @@ def format_current_ma(value: float) -> str:
     """
     value = float(value)
     if not value.is_integer():
-        raise CommandRejectedError(
-            f"current {value!r} mA is not a whole-mA value; this backend sends integer mA"
-        )
+        raise CommandRejectedError(f"current {value!r} mA is not a whole-mA value")
     return str(int(value))
 
 
@@ -99,19 +86,16 @@ def encode_query_current(channel: int) -> str:
     return f"?CURRENT {channel}"
 
 
-# ---------------------------------------------------------------------------
-# Response classification
-# ---------------------------------------------------------------------------
+# --- Response classification ---
 
 
 def check_response(response: str, command: str) -> str:
     """Raise if the device refused the command; else return the stripped text.
 
-    The response is stripped first so the prefix checks hold on raw reads;
-    the checks themselves are prefix/substring matches, deliberately not
-    equality, so they tolerate echo remnants and stray line-ending bytes
-    around the code. No device error code is ever attached: the vendor's
-    post-#! Error command is undocumented, so nothing reports one.
+    The checks are prefix/substring matches on the stripped text, not
+    equality, so echo remnants and stray line-ending bytes cannot defeat
+    them. No device error code is attached: the vendor's post-#! Error
+    command is undocumented.
     """
     response = response.strip()
     if response.startswith("#!"):
@@ -128,18 +112,15 @@ def check_response(response: str, command: str) -> str:
 def require_ack(response: str, command: str) -> None:
     """Require the ## success marker after ruling out explicit refusals.
 
-    A non-empty response that is neither a refusal nor an ack is a protocol
-    violation — a link problem, not a device decision — so it raises the root
-    transport error.
+    A non-empty response that is neither a refusal nor an ack is a link
+    problem, not a device decision, hence the root transport error.
     """
     check_response(response, command)
     if "##" not in response:
         raise TransportError(f"expected '##' ack for {command!r}, got {response!r}")
 
 
-# ---------------------------------------------------------------------------
-# Parsing: response strings to values (strip '#', split; never positional)
-# ---------------------------------------------------------------------------
+# --- Parsing: response strings to values (strip '#', split; never positional) ---
 
 
 def parse_mode(response: str) -> OperatingMode:
@@ -154,7 +135,7 @@ def parse_mode(response: str) -> OperatingMode:
 def parse_current(response: str) -> tuple[float, float]:
     """Extract (Imax, Iset) in mA from a ?CURRENT response.
 
-    The response leads with two calibration fields — '#Cal1 Cal2 Imax Iset' —
+    The response leads with two calibration fields ('#Cal1 Cal2 Imax Iset'),
     so the values are the LAST two tokens; a positional parse would read
     calibration data as currents.
     """
@@ -162,109 +143,110 @@ def parse_current(response: str) -> tuple[float, float]:
     if len(tokens) < 2:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}")
     try:
-        # int-strict like the proven parser: the device emits digit strings,
-        # and anything float() would additionally admit (nan, inf, decimals)
-        # is a corrupt reply, not a current.
+        # int-strict like the proven parser: the device emits digit strings;
+        # nan/inf/decimals would be corruption, not a current.
         return float(int(tokens[-2])), float(int(tokens[-1]))
     except ValueError:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
 
 
-def _token_after(response: str, keyword: str) -> str | None:
-    """The whitespace-delimited token right after a keyword, or None."""
-    if keyword not in response:
+def _field_after(response: str, label: str) -> str | None:
+    """The whitespace-delimited word right after a label, or None."""
+    if label not in response:
         return None
-    tail = response.split(keyword, 1)[1].split()
+    tail = response.split(label, 1)[1].split()
     return tail[0] if tail else None
 
 
 def parse_device_info(response: str) -> DeviceInfo:
-    """Parse a DEVICEINFO response by keyword; total, never raises.
-
-    Sample shapes differ between vendor documents and the real unit (the
-    module field is not always present), so each field is looked up by its
-    keyword and is None when absent. The caller decides what missing fields
-    mean.
-    """
+    """Parse a DEVICEINFO response by keyword; total, never raises."""
     return DeviceInfo(
-        firmware_version=_token_after(response, "Driver:"),
-        module_number=_token_after(response, "Module No.:"),
-        serial_number=_token_after(response, "Serial No.:"),
+        firmware_version=_field_after(response, "Driver:"),
+        module_number=_field_after(response, "Module No.:"),
+        serial_number=_field_after(response, "Serial No.:"),
     )
 
 
-# ---------------------------------------------------------------------------
-# Module identity to capabilities
-# ---------------------------------------------------------------------------
+# --- Module identity to capabilities ---
 
-# Per-family facts from the vendor user manual's module feature matrix, one
-# row per family this backend can drive faithfully. Columns: current
-# resolution (mA per count), programmable profile steps, TRIGGER mode,
-# load-voltage read-back, FanPWM (further gated to -MU variants below).
-# Step counts: the vendor's "128 Steps" includes the mandatory (0, 0)
-# terminator pair (its own text says "allows 127 programmable maximum
-# steps"), hence 127 here. Whether the "2 Steps" families likewise lose one
-# pair to the terminator is unresolved and out of this slice's scope; 2
-# matches the matrix figure and the existing fake's convention.
-# Deliberately absent, so opening one fails rather than guessing or lying:
-# QA (no vendor matrix row, undocumented resolution) and FA/FV/XA/XV (their
-# wire unit is 0.1 mA, which this codec's whole-mA serialization would drive
-# 10x low — see the module docstring).
-_FAMILY_TABLE: Final[dict[ModuleType, tuple[float, int, bool, bool, bool]]] = {
-    ModuleType.AA: (1.0, 127, True, False, False),
-    ModuleType.AV: (1.0, 127, True, True, False),
-    ModuleType.SA: (1.0, 2, True, False, False),
-    ModuleType.SV: (1.0, 2, True, True, False),
-    ModuleType.MA: (1.0, 2, False, False, True),
-    ModuleType.CA: (5.0, 2, False, False, True),
-    ModuleType.HA: (1.0, 2, True, False, False),
-    ModuleType.HV: (1.0, 2, True, True, False),
+
+class _Family(NamedTuple):
+    """One capability row of the vendor manual's module feature matrix."""
+
+    resolution_ma: float
+    profile_steps: int
+    trigger: bool
+    load_voltage: bool
+    fan_pwm: bool
+
+
+# One row per family this backend can drive faithfully. The vendor's
+# "128 Steps" includes the mandatory (0, 0) terminator pair (its own text
+# says "allows 127 programmable maximum steps"), hence 127; whether the
+# "2 Steps" families also lose a pair is unresolved, so 2 matches the matrix
+# figure and the existing fake. Deliberately absent, so opening one fails
+# rather than guessing: QA (no matrix row, undocumented resolution) and
+# FA/FV/XA/XV (wire unit 0.1 mA, which whole-mA serialization would drive
+# 10x low).
+_FAMILY_TABLE: Final[dict[ModuleType, _Family]] = {
+    ModuleType.AA: _Family(1.0, 127, trigger=True, load_voltage=False, fan_pwm=False),
+    ModuleType.AV: _Family(1.0, 127, trigger=True, load_voltage=True, fan_pwm=False),
+    ModuleType.SA: _Family(1.0, 2, trigger=True, load_voltage=False, fan_pwm=False),
+    ModuleType.SV: _Family(1.0, 2, trigger=True, load_voltage=True, fan_pwm=False),
+    ModuleType.MA: _Family(1.0, 2, trigger=False, load_voltage=False, fan_pwm=True),
+    ModuleType.CA: _Family(5.0, 2, trigger=False, load_voltage=False, fan_pwm=True),
+    ModuleType.HA: _Family(1.0, 2, trigger=True, load_voltage=False, fan_pwm=False),
+    ModuleType.HV: _Family(1.0, 2, trigger=True, load_voltage=True, fan_pwm=False),
 }
 
-# Family letters and channel count out of a module number like SLC-SA04-U/S
-# or SLC-MA04-MU (SLB-prefixed variants exist for the H families).
+# Family letters and channel count, as in SLC-SA04-U/S or SLC-MA04-MU
+# (SLB-prefixed variants exist for the H families).
 _MODULE_PATTERN: Final[re.Pattern[str]] = re.compile(r"-([A-Z]{2})(\d{2})")
 
 
-def capabilities_for_module(module_number: str | None) -> ControllerCapabilities:
-    """Map a DEVICEINFO module number onto the family capability table.
-
-    Takes the module token DEVICEINFO reported (e.g. 'SLC-SA04-U/S'). Raises
-    the root transport error when the module is missing, does not parse, or
-    names a family with no capability row this backend can drive faithfully;
-    the library never fabricates device facts.
-    """
-    if module_number is None:
-        raise TransportError("device did not report a module number")
-    normalized = module_number.upper()
-    match = _MODULE_PATTERN.search(normalized)
+def _parse_module_number(module_number: str) -> tuple[ModuleType, int]:
+    """Return the module family and channel count encoded in a module number."""
+    match = _MODULE_PATTERN.search(module_number.upper())
     if match is None:
         raise TransportError(f"cannot identify a module family in {module_number!r}")
-    family_text, channel_text = match.groups()
+
+    family_name, channel_count = match.groups()
+
     try:
-        family = ModuleType[family_text]
+        family = ModuleType[family_name]
     except KeyError:
         raise TransportError(
-            f"unknown module family {family_text!r} in {module_number!r}"
+            f"unknown module family {family_name!r} in {module_number!r}"
         ) from None
+
+    return family, int(channel_count)
+
+
+def capabilities_for_module(module_number: str | None) -> ControllerCapabilities:
+    """Return documented capabilities for a DEVICEINFO module number."""
+    if module_number is None:
+        raise TransportError("device did not report a module number")
+
+    family, channel_count = _parse_module_number(module_number)
+    if channel_count < 1:
+        raise TransportError(f"implausible channel count {channel_count} in {module_number!r}")
+
     row = _FAMILY_TABLE.get(family)
     if row is None:
         raise TransportError(
-            f"module family {family_text!r} has no documented capabilities; "
-            f"refusing to guess for {module_number!r}"
+            f"no documented capabilities for module family {family.name!r} "
+            f"in {module_number!r}"
         )
-    channel_count = int(channel_text)
-    if channel_count < 1:
-        raise TransportError(f"implausible channel count {channel_count} in {module_number!r}")
-    resolution_ma, profile_steps, trigger, load_voltage, fan = row
-    # FanPWM hardware exists only on the -MU knob variants of MA/CA.
-    fan = fan and "-MU" in normalized
+
+    module_upper = module_number.upper()
+    supports_fan_control = row.fan_pwm and "-MU" in module_upper
+
     return ControllerCapabilities(
         module_type=family,
         channel_count=channel_count,
-        current_resolution_ma=resolution_ma,
-        max_profile_steps=profile_steps,
-        supports_trigger_mode=trigger,
-        supports_load_voltage=load_voltage,
-        supports_fan_control=fan,
+        current_resolution_ma=row.resolution_ma,
+        max_profile_steps=row.profile_steps,
+        supports_trigger_mode=row.trigger,
+        supports_load_voltage=row.load_voltage,
+        supports_fan_control=supports_fan_control,
     )
