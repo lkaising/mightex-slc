@@ -52,16 +52,12 @@ class DeviceInfo:
 
 
 def format_current_ma(value: float) -> str:
-    """Serialize a milliamp value as the integer text the wire expects.
+    """Serialize a whole-milliamp value as wire integer text."""
+    current_ma = float(value)
+    if current_ma.is_integer():
+        return str(int(current_ma))
 
-    Faithful serialization only: no rounding, no scaling, no clamping. A value
-    that is not a whole number of milliamps cannot be expressed, so it is
-    refused as a rejected command rather than silently altered.
-    """
-    value = float(value)
-    if not value.is_integer():
-        raise CommandRejectedError(f"current {value!r} mA is not a whole-mA value")
-    return str(int(value))
+    raise CommandRejectedError(f"current {current_ma!r} mA is not a whole-mA value")
 
 
 def encode_normal(channel: int, current_max_ma: float, current_set_ma: float) -> str:
