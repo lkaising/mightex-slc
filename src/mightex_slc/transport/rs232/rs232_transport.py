@@ -129,19 +129,21 @@ class RS232Transport(Transport):
         current_max_ma: float,
         current_set_ma: float,
     ) -> None:
+        """Send the normal-mode current limits for one channel."""
         ser = self._require_open(handle)
         self._command_ack(ser, codec.encode_normal(channel, current_max_ma, current_set_ma))
 
     def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
+        """Send the operating-mode command for one channel."""
         ser = self._require_open(handle)
         self._command_ack(ser, codec.encode_mode(channel, mode))
 
     def close_device(self, handle: TransportHandle) -> None:
-        # Idempotent by identity: only the currently open handle closes the
-        # port; a stale handle is a no-op and never touches a newer session.
+        """Close the current handle, ignoring stale or already-closed handles."""
         if self._handle is None or handle is not self._handle:
             return
-        # The server has already dropped the device_id; the close must not fail.
+
+        # The server has already dropped the device_id; close must not fail.
         _close_quietly(self._handle.port)
         self._handle = None
 
