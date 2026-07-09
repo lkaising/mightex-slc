@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 class Channel:
     """One channel of an open controller, addressed by its 1-based channel number."""
 
+    __slots__ = ("_device_id", "_executor", "_number")
+
     def __init__(self, executor: link.RequestExecutor, device_id: str, number: int) -> None:
         self._executor = executor
         self._device_id = device_id
@@ -84,3 +86,6 @@ class Channel:
             DeviceConnectionError: If communication with the device fails.
         """
         link.set_active_mode(self._executor, self._device_id, self._number, mode)
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} device_id={self._device_id!r} number={self._number}>"

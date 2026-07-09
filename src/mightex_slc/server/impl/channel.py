@@ -37,6 +37,14 @@ class ChannelModel:
         self._capabilities = capabilities
         self._number = number
 
+    @property
+    def capabilities(self) -> ControllerCapabilities:
+        return self._capabilities
+
+    @property
+    def number(self) -> int:
+        return self._number
+
     def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
         """Store NORMAL-mode parameters for this channel; output unchanged."""
         self._transport.configure_normal(self._handle, self._number, current_max_ma, current_set_ma)

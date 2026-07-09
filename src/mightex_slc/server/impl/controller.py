@@ -56,20 +56,14 @@ class ControllerModel:
 
     @property
     def serial_number(self) -> str:
-        """The device serial number reported at open."""
         return self._serial_number
 
     @property
     def capabilities(self) -> ControllerCapabilities:
-        """The capability set reported at open."""
         return self._capabilities
 
     def channel(self, number: int) -> ChannelModel:
-        """The channel model for a one-based channel number.
-
-        The range check is capability policy, enforced here so every backend
-        behaves identically; transports keep their own device truth below.
-        """
+        """The channel model for a 1-based channel number."""
         count = self._capabilities.channel_count
         if not 1 <= number <= count:
             raise CommandRejectedError(f"channel {number} out of range 1..{count}")
