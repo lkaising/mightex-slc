@@ -102,14 +102,13 @@ def check_response(response: str, command: str) -> str:
 
 
 def require_ack(response: str, command: str) -> None:
-    """Require the ## success marker after ruling out explicit refusals.
-
-    A non-empty response that is neither a refusal nor an ack is a link
-    problem, not a device decision, hence the root transport error.
-    """
+    """Raise unless the response contains the success ack marker."""
     check_response(response, command)
-    if "##" not in response:
-        raise TransportError(f"expected '##' ack for {command!r}, got {response!r}")
+
+    if "##" in response:
+        return
+
+    raise TransportError(f"expected '##' ack for {command!r}, got {response!r}")
 
 
 # --- Parsing: response strings to values (strip '#', split; never positional) ---
@@ -118,6 +117,7 @@ def require_ack(response: str, command: str) -> None:
 def parse_mode(response: str) -> OperatingMode:
     """Extract the operating mode from a ?MODE response like '#1'."""
     text = response.replace("#", "").strip()
+
     try:
         return OperatingMode(int(text))
     except ValueError:
