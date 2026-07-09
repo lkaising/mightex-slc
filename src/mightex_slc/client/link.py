@@ -53,15 +53,7 @@ from .errors import (
 
 
 class RequestExecutor(Protocol):
-    """The contract seam: run one serialized request, return the reply dict.
-
-    For a well-formed payload of a known operation, handle returns a contract
-    reply dict — an Ok or an Error envelope. It may raise for malformed
-    payloads or implementation bugs, but it never raises to signal device or
-    domain errors: those travel as Error replies and become exceptions only on
-    the client. The in-process Server is the one implementation today; a
-    daemon client would be another.
-    """
+    """Runs one serialized contract request and returns its reply dict."""
 
     def handle(self, operation: str, payload: dict[str, Any]) -> dict[str, Any]: ...
 
