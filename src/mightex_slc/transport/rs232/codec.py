@@ -86,23 +86,19 @@ def encode_query_current(channel: int) -> str:
 
 
 def check_response(response: str, command: str) -> str:
-    """Raise if the device refused the command; else return the stripped text.
+    """Return stripped response text, raising for known device rejections."""
+    text = response.strip()
 
-    The checks are prefix/substring matches on the stripped text, not
-    equality, so echo remnants and stray line-ending bytes cannot defeat
-    them. No device error code is attached: the vendor's post-#! Error
-    command is undocumented.
-    """
-    response = response.strip()
-    if response.startswith("#!"):
-        raise CommandRejectedError(
-            f"device reported an execution error for {command!r}: {response!r}"
-        )
-    if response.startswith("#?"):
-        raise CommandRejectedError(f"device rejected an argument of {command!r}: {response!r}")
-    if "is not defined" in response:
-        raise CommandRejectedError(f"device does not know the command {command!r}: {response!r}")
-    return response
+    if text.startswith("#!"):
+        error = f"device reported an execution error for {command!r}: {text!r}"
+    elif text.startswith("#?"):
+        error = f"device rejected an argument of {command!r}: {text!r}"
+    elif "is not defined" in text:
+        error = f"device does not know the command {command!r}: {text!r}"
+    else:
+        return text
+
+    raise CommandRejectedError(error)
 
 
 def require_ack(response: str, command: str) -> None:
