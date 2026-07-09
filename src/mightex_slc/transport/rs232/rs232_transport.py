@@ -148,12 +148,7 @@ class RS232Transport(Transport):
         self._handle = None
 
     def _open_serial_port(self, port: str) -> serial.Serial:
-        """Open the OS-level port; failure here means no reachable device.
-
-        POSIX ttys allow concurrent opens, so the open requests exclusive
-        (flock) ownership there to keep two transports off one physical
-        port. Windows ports are exclusive at the OS open already.
-        """
+        """Open the OS-level serial port, requesting POSIX-exclusive access."""
         try:
             return self._serial_factory(
                 port=port,
