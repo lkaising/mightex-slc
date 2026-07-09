@@ -59,10 +59,5 @@ class ChannelModel:
         self._transport.set_active_mode(self._handle, self._number, mode)
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__} number={self._number} module={self._capabilities.module_type.name}>"
-
-    # def __repr__(self) -> str:
-    #     return (
-    #         f"<{type(self).__name__} number={self._number} "
-    #         f"module={self._capabilities.module_type.name}>"
-    #     )
+        module = self._capabilities.module_type.name
+        return f"<{type(self).__name__} number={self._number} module={module}>"
