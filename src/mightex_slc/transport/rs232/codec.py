@@ -125,33 +125,29 @@ def parse_mode(response: str) -> OperatingMode:
 
 
 def parse_current(response: str) -> tuple[float, float]:
-    """Extract (Imax, Iset) in mA from a ?CURRENT response.
-
-    The response leads with two calibration fields ('#Cal1 Cal2 Imax Iset'),
-    so the values are the LAST two tokens; a positional parse would read
-    calibration data as currents.
-    """
+    """Extract integer mA (Imax, Iset) from the final two ?CURRENT response tokens."""
     tokens = response.replace("#", "").split()
     if len(tokens) < 2:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}")
+
+    max_current_text, set_current_text = tokens[-2:]
+
     try:
-        # int-strict like the proven parser: the device emits digit strings;
-        # nan/inf/decimals would be corruption, not a current.
-        return float(int(tokens[-2])), float(int(tokens[-1]))
+        return float(int(max_current_text)), float(int(set_current_text))
     except ValueError:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
 
 
 def _field_after(response: str, label: str) -> str | None:
-    """The whitespace-delimited word right after a label, or None."""
+    """Return the whitespace-delimited field after label, or None."""
     if label not in response:
         return None
-    tail = response.split(label, 1)[1].split()
-    return tail[0] if tail else None
 
+    fields = response.split(label, 1)[1].split()
+    return fields[0] if fields else None
 
 def parse_device_info(response: str) -> DeviceInfo:
-    """Parse a DEVICEINFO response by keyword; total, never raises."""
+    """Parse a DEVICEINFO response by keyword, returning missing fields as None."""
     return DeviceInfo(
         firmware_version=_field_after(response, "Driver:"),
         module_number=_field_after(response, "Module No.:"),
