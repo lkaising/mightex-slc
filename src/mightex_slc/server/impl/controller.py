@@ -31,6 +31,8 @@ if TYPE_CHECKING:
 class ControllerModel:
     """One open controller: handle, capabilities, and capability policy."""
 
+    __slots__ = ("_capabilities", "_handle", "_serial_number", "_transport")
+
     def __init__(
         self,
         transport: Transport,
@@ -77,3 +79,9 @@ class ControllerModel:
     def close(self) -> None:
         """Release the device handle; idempotent through the transport."""
         self._transport.close_device(self._handle)
+
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} serial_number={self._serial_number!r} "
+            f"module={self._capabilities.module_type.name}>"
+        )

@@ -25,6 +25,8 @@ from ...transport import CommandRejectedError, Transport, TransportHandle
 class ChannelModel:
     """One channel of an open controller; built by ControllerModel.channel()."""
 
+    __slots__ = ("_capabilities", "_handle", "_number", "_transport")
+
     def __init__(
         self,
         transport: Transport,
@@ -55,3 +57,12 @@ class ChannelModel:
             family = self._capabilities.module_type.name
             raise CommandRejectedError(f"TRIGGER mode is not available on {family} modules")
         self._transport.set_active_mode(self._handle, self._number, mode)
+
+    def __repr__(self) -> str:
+        return f"<{type(self).__name__} number={self._number} module={self._capabilities.module_type.name}>"
+
+    # def __repr__(self) -> str:
+    #     return (
+    #         f"<{type(self).__name__} number={self._number} "
+    #         f"module={self._capabilities.module_type.name}>"
+    #     )
