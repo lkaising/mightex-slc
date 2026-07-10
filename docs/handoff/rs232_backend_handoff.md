@@ -15,6 +15,11 @@
 > framing). §3's "pyserial not installed" and parts of §9's housekeeping list
 > are superseded.
 
+> **Update (2026-07-10):** the backend was since reorganized into four modules
+> (`codec.py`, `capabilities.py`, `serial_link.py`, `rs232_transport.py`) with
+> no behavior change; file references below reflect the original two-file
+> layout.
+
 Status: written 2026-07-06 on the Linux hardware machine, from a fresh audit of
 the live code, the two projects, and the connected device. This is a **map, not
 a manual**: it points at where the truth lives and flags what to trust. It does

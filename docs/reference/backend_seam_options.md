@@ -97,7 +97,7 @@ The naive version makes `default_backend()` **un-cached** (fresh
 `Server(create_transport())` per open), which fixes the frozen-env problem
 — but breaks something real: single-open enforcement is **per transport
 instance**, not per port (`fake_transport.py:83-84`,
-`rs232_transport.py:86-87`). Two bare `open_device()` calls would create
+`rs232_transport.py:79-80`). Two bare `open_device()` calls would create
 two transports on the same `MIGHTEX_SLC_PORT`; today the second fails with
 `DeviceConnectionError`, un-cached it would succeed and put two pyserial
 handles on one device (pyserial isn't opened with `exclusive=True`). It

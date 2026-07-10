@@ -9,9 +9,11 @@
 """
 The rs232 backend package: the real serial path.
 
-This is the only place the device wire protocol lives. The codec module owns the
-encode and decode of the RS232 command format, and the transport module drives it
-over pyserial. Nothing above transport sees these bytes.
+This is the only place the device wire protocol lives. The codec module owns
+the encode and decode of the RS232 command strings, capabilities maps module
+identity to what each family can do, serial_link owns the bytes and timing
+around the strings, and the transport module orchestrates them over pyserial.
+Nothing above transport sees these bytes.
 """
 
 from typing import TYPE_CHECKING

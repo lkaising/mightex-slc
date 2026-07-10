@@ -202,14 +202,20 @@ LED driven on and off through the public API. The shape below is what was
 built; the deviations the bench unit showed from the recorded recipe are
 logged in `device_and_protocol.md` §§5–6 and §9.
 
-**Division of labor** (mirrors the test project's proven three-layer split):
+**Division of labor** (mirrors the test project's proven three-layer split;
+factored one step further 2026-07-10):
 
-- `transport/rs232/rs232_transport.py` — owns the pyserial port, framing, and
+- `transport/rs232/rs232_transport.py` — the `Transport` implementation:
+  handle lifecycle, the identify flow, per-operation orchestration.
+- `transport/rs232/serial_link.py` — owns the pyserial port, framing, and
   timing. Knows bytes, not meaning.
 - `transport/rs232/codec.py` — pure functions: build command strings
   (`"NORMAL 1 200 100"`), parse/validate responses. Knows meaning, not I/O.
   Keeping the codec pure is what made the old stack testable against a
   ~70-line fake serial object; preserve that property.
+- `transport/rs232/capabilities.py` — maps the DEVICEINFO module number to
+  the vendor matrix's documented capabilities; unknown families refuse
+  rather than guess.
 
 **The proven serial recipe** (details and provenance in
 `device_and_protocol.md` §§2–5, 9):

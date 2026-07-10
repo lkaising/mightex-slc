@@ -197,11 +197,12 @@ fake-backend use. These two env vars are the *only* live configuration
 inputs (examples/config.yaml is read by nothing).
 
 - `rs232/` — codec.py is pure string↔string protocol (whole-mA only,
-  `#!`/`#?` → `CommandRejectedError`, capability table for 8 module
-  families; unknown families refuse rather than guess);
-  `rs232_transport.py` drives pyserial (9600 baud, `\n\r` TX terminator,
-  ECHOOFF + DEVICEINFO presence probe, single-open enforcement,
-  `serial_factory` test seam).
+  `#!`/`#?` → `CommandRejectedError`); capabilities.py is the capability
+  table for 8 module families (unknown families refuse rather than guess);
+  serial_link.py drives pyserial (9600 baud, `\n\r` TX terminator,
+  read-to-CR + drain); `rs232_transport.py` orchestrates them (ECHOOFF +
+  DEVICEINFO presence probe, single-open enforcement, `serial_factory`
+  test seam).
 - `fake/` — simulates a single SLC-MA04-MU with per-channel state that
   persists across close; same single-open enforcement.
 
@@ -251,7 +252,7 @@ non-obvious:
    two controllers cannot use different backends.
 2. **At most one open device per default backend.** Both transports raise
    `TransportError("device is already open")` on a second open
-   (`rs232_transport.py:86-87`, `fake_transport.py:83-84`), which surfaces
+   (`rs232_transport.py:79-80`, `fake_transport.py:83-84`), which surfaces
    client-side as `DeviceConnectionError`. The Session has no capacity
    limit — the cap is purely the transport. Reopen after close works.
 3. **Mid-lifetime `use_backend()` silently reroutes live Controllers.** A
