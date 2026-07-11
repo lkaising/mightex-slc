@@ -31,8 +31,6 @@ from typing import Final
 from ...contract import OperatingMode
 from ..base import CommandRejectedError, TransportError
 
-# Sent verbatim. ECHOOFF (host-control entry; PC-Mode on MA/CA) never returns
-# a clean ack; DEVICEINFO returns the one bare, un-prefixed response.
 ECHO_OFF_COMMAND: Final[str] = "ECHOOFF"
 DEVICE_INFO_COMMAND: Final[str] = "DEVICEINFO"
 
