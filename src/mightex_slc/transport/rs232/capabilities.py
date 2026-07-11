@@ -6,8 +6,6 @@
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
 
-"""Map RS232 module identities to their documented capabilities."""
-
 from __future__ import annotations
 
 import re
