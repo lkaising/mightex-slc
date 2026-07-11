@@ -80,7 +80,7 @@ live object.
 # Happy path — unchanged
 import mightex_slc
 with mightex_slc.open_device() as ctrl:
-    ctrl.channel(1).configure_normal(NormalParameters(current_max_ma=500, current_set_ma=200))
+    ctrl.channel(1).set_normal_parameters(NormalParameters(current_max_ma=500, current_set_ma=200))
 
 # Test injection — no fixture, no globals
 ctrl = open_device(backend=Server(FakeTransport()))
@@ -182,7 +182,7 @@ with mightex_slc.open_device() as ctrl: ...
 # Test injection — scoped, self-cleaning
 with Session(Server(FakeTransport())) as s:
     ctrl = s.open_device()
-    ctrl.channel(2).configure_normal(NormalParameters(current_max_ma=500, current_set_ma=100))
+    ctrl.channel(2).set_normal_parameters(NormalParameters(current_max_ma=500, current_set_ma=100))
 # session exit → close_device for anything left open → transport released
 ```
 

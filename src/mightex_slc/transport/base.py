@@ -93,7 +93,7 @@ class Transport(ABC):
         when the device is already held open."""
 
     @abstractmethod
-    def configure_normal(
+    def set_normal_parameters(
         self,
         handle: TransportHandle,
         channel: int,

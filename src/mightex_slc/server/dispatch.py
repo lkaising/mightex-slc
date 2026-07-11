@@ -23,8 +23,6 @@ from typing import TYPE_CHECKING, Any
 from ..contract import (
     CloseDeviceOk,
     CloseDeviceRequest,
-    ConfigureNormalOk,
-    ConfigureNormalRequest,
     ContractModel,
     GetActiveModeOk,
     GetActiveModeRequest,
@@ -32,6 +30,8 @@ from ..contract import (
     OpenDeviceRequest,
     SetActiveModeOk,
     SetActiveModeRequest,
+    SetNormalParametersOk,
+    SetNormalParametersRequest,
 )
 from ..transport import Transport, TransportError
 from .errors import to_error, unsupported_operation
@@ -81,16 +81,16 @@ def _open_device(
     )
 
 
-def _configure_normal(
-    request: ConfigureNormalRequest,
+def _set_normal_parameters(
+    request: SetNormalParametersRequest,
     *,
     session: Session,
     transport: Transport,
-) -> ConfigureNormalOk:
-    """Configure a controller channel for normal operation."""
+) -> SetNormalParametersOk:
+    """Set the NORMAL-mode parameters of a controller channel."""
     model = session.get(request.device_id)
-    model.channel(request.channel).configure_normal(request.parameters)
-    return ConfigureNormalOk()
+    model.channel(request.channel).set_normal_parameters(request.parameters)
+    return SetNormalParametersOk()
 
 
 def _set_active_mode(
@@ -131,7 +131,7 @@ def _close_device(
 
 _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "open_device": (OpenDeviceRequest, _open_device),
-    "configure_normal": (ConfigureNormalRequest, _configure_normal),
+    "set_normal_parameters": (SetNormalParametersRequest, _set_normal_parameters),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
     "get_active_mode": (GetActiveModeRequest, _get_active_mode),
     "close_device": (CloseDeviceRequest, _close_device),

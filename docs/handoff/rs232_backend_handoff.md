@@ -40,7 +40,7 @@ the small housekeeping gaps that keep the project from being in a good state
 (see §9).
 
 **Scope stays the turn-on-normal slice.** In: `open_device`, `initialize`,
-`configure_normal`, `set_active_mode`, `close_device`, over NORMAL mode only.
+`set_normal_parameters`, `set_active_mode`, `close_device`, over NORMAL mode only.
 Out, by standing decision (do not widen the slice): strobe, trigger, fan, store,
 new operations, the single-owner-port daemon. See the deliberate cuts in
 [`../reference/architecture.md`](../reference/architecture.md) §7.
@@ -119,7 +119,7 @@ is fully specified**:
 
 - **`src/mightex_slc/transport/base.py`** — `Transport` (ABC). Your backend
   subclasses this and implements the five slice operations: `open_device`,
-  `initialize`, `configure_normal`, `set_active_mode`, `close_device`. Open
+  `initialize`, `set_normal_parameters`, `set_active_mode`, `close_device`. Open
   returns a `TransportOpenResult(handle, serial_number, capabilities)`; failures
   raise the `TransportError` family (`DeviceNotPresentError`,
   `InvalidHandleError`, `CommandRejectedError`). Read this file in full — it is
@@ -184,7 +184,7 @@ import (its exception tree and flat API are superseded by the new layering).
 |---|---|
 | `src/mightex_slc/transport.py` | The serial I/O layer — port config (8N1/9600), the `send` TX/RX cycle, and `_read_response`'s framing/drain. **Maps onto the new `rs232_transport.py`.** The single most valuable file. |
 | `src/mightex_slc/protocol.py` | Command-string builders, ack/error checking (`_check_ack`/`_expect_ack`), and response parsers (`_parse_mode`, `_parse_normal_params`, `DeviceInfo.from_response`). **Maps onto the new `codec.py`.** |
-| `src/mightex_slc/controller.py` | Two load-bearing *sequences* only: `connect()` (open → ECHOOFF) → your `initialize`; and the store-then-activate turn-on (`NORMAL …` then `MODE ch 1`) → your `configure_normal` + `set_active_mode`. |
+| `src/mightex_slc/controller.py` | Two load-bearing *sequences* only: `connect()` (open → ECHOOFF) → your `initialize`; and the store-then-activate turn-on (`NORMAL …` then `MODE ch 1`) → your `set_normal_parameters` + `set_active_mode`. |
 | `src/mightex_slc/constants.py` | Limits/defaults reusable close to verbatim (channel range, current ceilings, baud, timeout). |
 | `tests/conftest.py` | A `FakeSerial` byte-level test double — a ready template for testing the new backend without hardware. |
 | `tests/test_controller.py` | `TestHardwareIntegration` (marked `@pytest.mark.hardware`, real `/dev/ttyUSB0`) records observed device behavior — including the post-write settle delay before a read-back. |

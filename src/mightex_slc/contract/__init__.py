@@ -20,9 +20,6 @@ from .operations import (
     CloseDeviceOk,
     CloseDeviceReply,
     CloseDeviceRequest,
-    ConfigureNormalOk,
-    ConfigureNormalReply,
-    ConfigureNormalRequest,
     DeviceRequest,
     GetActiveModeOk,
     GetActiveModeReply,
@@ -33,6 +30,9 @@ from .operations import (
     SetActiveModeOk,
     SetActiveModeReply,
     SetActiveModeRequest,
+    SetNormalParametersOk,
+    SetNormalParametersReply,
+    SetNormalParametersRequest,
 )
 
 __all__ = [
@@ -40,9 +40,6 @@ __all__ = [
     "CloseDeviceOk",
     "CloseDeviceReply",
     "CloseDeviceRequest",
-    "ConfigureNormalOk",
-    "ConfigureNormalReply",
-    "ConfigureNormalRequest",
     "ContractModel",
     "ControllerCapabilities",
     "DeviceRequest",
@@ -60,4 +57,7 @@ __all__ = [
     "SetActiveModeOk",
     "SetActiveModeReply",
     "SetActiveModeRequest",
+    "SetNormalParametersOk",
+    "SetNormalParametersReply",
+    "SetNormalParametersRequest",
 ]

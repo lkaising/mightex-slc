@@ -90,7 +90,7 @@ class FakeTransport(Transport):
             capabilities=FAKE_CAPABILITIES,
         )
 
-    def configure_normal(
+    def set_normal_parameters(
         self,
         handle: TransportHandle,
         channel: int,

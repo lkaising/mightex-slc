@@ -58,8 +58,6 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from mightex_slc.contract import (  # noqa: E402
     CloseDeviceReply,
     CloseDeviceRequest,
-    ConfigureNormalReply,
-    ConfigureNormalRequest,
     ControllerCapabilities,
     Error,
     ErrorType,
@@ -72,6 +70,8 @@ from mightex_slc.contract import (  # noqa: E402
     OperatingMode,
     SetActiveModeReply,
     SetActiveModeRequest,
+    SetNormalParametersReply,
+    SetNormalParametersRequest,
 )
 
 SCHEMAS_DIR = REPO_ROOT / "schemas"
@@ -83,7 +83,7 @@ HEADER = (
 
 OPERATIONS: dict[str, tuple[Any, Any]] = {
     "open_device": (OpenDeviceRequest, OpenDeviceReply),
-    "configure_normal": (ConfigureNormalRequest, ConfigureNormalReply),
+    "set_normal_parameters": (SetNormalParametersRequest, SetNormalParametersReply),
     "set_active_mode": (SetActiveModeRequest, SetActiveModeReply),
     "get_active_mode": (GetActiveModeRequest, GetActiveModeReply),
     "close_device": (CloseDeviceRequest, CloseDeviceReply),

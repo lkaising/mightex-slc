@@ -17,7 +17,7 @@ from mightex_slc import NormalParameters, OperatingMode, open_device
 
 with open_device(port="/dev/ttyUSB0") as controller:
     channel = controller.channel(1)                # one-based
-    channel.configure_normal(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
+    channel.set_normal_parameters(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
     channel.set_active_mode(OperatingMode.NORMAL)  # light on
     try:
         time.sleep(5.0)

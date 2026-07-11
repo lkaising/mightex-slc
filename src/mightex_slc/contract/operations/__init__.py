@@ -8,23 +8,20 @@
 
 from .base import ChannelRequest, DeviceRequest
 from .close_device import CloseDeviceOk, CloseDeviceReply, CloseDeviceRequest
-from .configure_normal import (
-    ConfigureNormalOk,
-    ConfigureNormalReply,
-    ConfigureNormalRequest,
-)
 from .get_active_mode import GetActiveModeOk, GetActiveModeReply, GetActiveModeRequest
 from .open_device import OpenDeviceOk, OpenDeviceReply, OpenDeviceRequest
 from .set_active_mode import SetActiveModeOk, SetActiveModeReply, SetActiveModeRequest
+from .set_normal_parameters import (
+    SetNormalParametersOk,
+    SetNormalParametersReply,
+    SetNormalParametersRequest,
+)
 
 __all__ = [
     "ChannelRequest",
     "CloseDeviceOk",
     "CloseDeviceReply",
     "CloseDeviceRequest",
-    "ConfigureNormalOk",
-    "ConfigureNormalReply",
-    "ConfigureNormalRequest",
     "DeviceRequest",
     "GetActiveModeOk",
     "GetActiveModeReply",
@@ -35,4 +32,7 @@ __all__ = [
     "SetActiveModeOk",
     "SetActiveModeReply",
     "SetActiveModeRequest",
+    "SetNormalParametersOk",
+    "SetNormalParametersReply",
+    "SetNormalParametersRequest",
 ]

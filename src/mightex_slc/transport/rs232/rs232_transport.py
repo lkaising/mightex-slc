@@ -87,7 +87,7 @@ class RS232Transport(Transport):
             capabilities=capabilities,
         )
 
-    def configure_normal(
+    def set_normal_parameters(
         self,
         handle: TransportHandle,
         channel: int,

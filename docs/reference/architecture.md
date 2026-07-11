@@ -111,7 +111,7 @@ PORT: str = "/dev/ttyUSB0"  # always explicit; open_fake_device() is the no-hard
 
 with open_device(port=PORT) as controller:        # -> Controller (context manager)
     channel = controller.channel(1)               # one-based; pure client-side accessor
-    channel.configure_normal(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
+    channel.set_normal_parameters(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
     channel.set_active_mode(OperatingMode.NORMAL)  # light on
     try:
         time.sleep(5.0)                           # timed-on is host-timed (no device primitive)
@@ -139,7 +139,7 @@ Decisions this implies (resolving stale skeleton docstrings):
   "holds a device_id and nothing else" is superseded.)
 - `channel(n)` never crosses the seam; it just constructs a `Channel` proxy
   carrying the controller's executor, its `device_id`, and `n`.
-- `configure_normal` takes a `NormalParameters` model carrying
+- `set_normal_parameters` takes a `NormalParameters` model carrying
   `current_max_ma` / `current_set_ma` floats in mA; the model refuses
   `current_set_ma > current_max_ma` (and negative currents) at construction,
   and nothing rescales or rounds the values. The rs232 backend serializes them
@@ -189,7 +189,7 @@ semantics in `device_and_protocol.md` §7:
 
 - One controller with a module family, ≥1 channels, a current resolution, and
   per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
-- `configure_normal` stores parameters **without changing output**;
+- `set_normal_parameters` stores parameters **without changing output**;
   `set_active_mode` is what "lights the LED" (mutates active mode);
   `get_active_mode` reads the live mode back.
 - Reports capabilities on open (an MA04-MU persona, which keeps the

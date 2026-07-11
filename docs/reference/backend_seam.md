@@ -62,7 +62,7 @@ Around the seam, link.py owns the request/reply plumbing
 model, `model_dump(mode="json")`, send through `call()`, re-validate the
 reply dict against a cached `TypeAdapter[Ok | Error]`, raise a mapped
 client exception on `Error`, return the Ok model otherwise. Four public
-functions — `open_device`, `configure_normal`, `set_active_mode`,
+functions — `open_device`, `set_normal_parameters`, `set_active_mode`,
 `close_device` — each do exactly this.
 
 Error mapping (`link.py:88-100`): `ErrorType → exception class`
@@ -85,7 +85,7 @@ special-cased to carry the device code:
   the server enforces range). `close()` is idempotent locally and sets
   `_closed` only after the link call succeeds.
 - `Channel` (`channel.py:26-49`) is stateless beyond `(device_id, number)`
-  and just forwards to `link.configure_normal` / `link.set_active_mode`.
+  and just forwards to `link.set_normal_parameters` / `link.set_active_mode`.
 
 **Key structural fact:** neither `Controller` nor `Channel` stores a
 backend reference. They hold only string/int identity and route through
@@ -186,7 +186,7 @@ yet — they document the seam for a future out-of-process caller).
 
 The `Transport` ABC (`transport/base.py:71-114`) is the *hardware* swap
 seam one layer beneath the Backend seam: four abstract methods
-(`open_device`, `configure_normal`, `set_active_mode`, `close_device`),
+(`open_device`, `set_normal_parameters`, `set_active_mode`, `close_device`),
 its own exception tree rooted at `TransportError`.
 
 `create_transport()` (`transport/__init__.py:35-54`) picks the
@@ -277,7 +277,7 @@ non-obvious:
    by convention — the Protocol docstring doesn't state it.
 7. **Client `_closed` is local bookkeeping only.** It guards duplicate
    `close()` but does not gate channel operations; a post-close
-   `configure_normal` still crosses the seam and relies on the server's
+   `set_normal_parameters` still crosses the seam and relies on the server's
    `CONTROLLER_CLOSED` reply.
 8. **No import cycle, by construction.** Server never imports client;
    client imports server only inside `_default_backend()`. The Protocol is

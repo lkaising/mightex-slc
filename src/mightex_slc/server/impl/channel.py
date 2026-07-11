@@ -47,9 +47,9 @@ class ChannelModel:
     def number(self) -> int:
         return self._number
 
-    def configure_normal(self, parameters: NormalParameters) -> None:
+    def set_normal_parameters(self, parameters: NormalParameters) -> None:
         """Store NORMAL-mode parameters for this channel; output unchanged."""
-        self._transport.configure_normal(self._handle, self._number, parameters)
+        self._transport.set_normal_parameters(self._handle, self._number, parameters)
 
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Make a mode active on this channel, effective immediately."""

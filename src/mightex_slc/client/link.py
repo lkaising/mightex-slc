@@ -29,9 +29,6 @@ from ..contract import (
     CloseDeviceOk,
     CloseDeviceReply,
     CloseDeviceRequest,
-    ConfigureNormalOk,
-    ConfigureNormalReply,
-    ConfigureNormalRequest,
     ContractModel,
     Error,
     ErrorType,
@@ -46,6 +43,9 @@ from ..contract import (
     SetActiveModeOk,
     SetActiveModeReply,
     SetActiveModeRequest,
+    SetNormalParametersOk,
+    SetNormalParametersReply,
+    SetNormalParametersRequest,
 )
 from .errors import (
     ControllerClosedError,
@@ -92,7 +92,9 @@ def _roundtrip[OkT: ContractModel](
 
 
 _OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceReply)
-_CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(ConfigureNormalReply)
+_SET_NORMAL_PARAMETERS_REPLY: TypeAdapter[SetNormalParametersOk | Error] = TypeAdapter(
+    SetNormalParametersReply
+)
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetActiveModeReply)
 _GET_ACTIVE_MODE_REPLY: TypeAdapter[GetActiveModeOk | Error] = TypeAdapter(GetActiveModeReply)
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
@@ -104,15 +106,17 @@ def open_device(executor: RequestExecutor, port: str | None = None) -> OpenDevic
     return _roundtrip(executor, "open_device", request, _OPEN_DEVICE_REPLY)
 
 
-def configure_normal(
+def set_normal_parameters(
     executor: RequestExecutor,
     device_id: str,
     channel: int,
     parameters: NormalParameters,
 ) -> None:
     """Store NORMAL-mode current parameters for one channel; output unchanged."""
-    request = ConfigureNormalRequest(device_id=device_id, channel=channel, parameters=parameters)
-    _roundtrip(executor, "configure_normal", request, _CONFIGURE_NORMAL_REPLY)
+    request = SetNormalParametersRequest(
+        device_id=device_id, channel=channel, parameters=parameters
+    )
+    _roundtrip(executor, "set_normal_parameters", request, _SET_NORMAL_PARAMETERS_REPLY)
 
 
 def set_active_mode(
