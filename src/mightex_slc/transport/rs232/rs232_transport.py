@@ -44,11 +44,7 @@ class _RS232Handle(TransportHandle):
 
 
 class RS232Transport(Transport):
-    """The real serial backend: one instance owns one physical port.
-
-    A single handle is active at a time; opening again before close fails
-    rather than multiplexing the port.
-    """
+    """A serial transport that owns one physical port and active handle."""
 
     def __init__(
         self,
@@ -120,7 +116,6 @@ class RS232Transport(Transport):
         if self._handle is None or handle is not self._handle:
             return
 
-        # The server has already dropped the device_id; close must not fail.
         serial_link.close_quietly(self._handle.port)
         self._handle = None
 
@@ -129,16 +124,7 @@ class RS232Transport(Transport):
         serial_port: serial.Serial,
         port: str,
     ) -> tuple[str, ControllerCapabilities]:
-        """Confirm a controller is answering and read its identity.
-
-        ECHOOFF enters PC Mode on MA/CA modules (hygiene elsewhere) and
-        never returns a clean ack, so its reply, possibly nothing, is
-        consumed and ignored. DEVICEINFO then doubles as the presence
-        probe, because an open tty proves nothing about a controller
-        answering: silence maps to DeviceNotPresentError rather than
-        serial_link.exchange's TransportError. Returns (serial_number,
-        capabilities).
-        """
+        """Identify the controller or raise if it is absent or reports incomplete information."""
         serial_link.exchange(
             serial_port,
             codec.ECHO_OFF_COMMAND,
@@ -161,10 +147,12 @@ class RS232Transport(Transport):
         return info.serial_number, capabilities
 
     def _require_open(self, handle: TransportHandle) -> serial.Serial:
+        """Return the open serial port associated with a valid current handle."""
         if self._handle is None or handle is not self._handle:
             raise InvalidHandleError("handle is not open")
         return self._handle.port
 
     def _command_ack(self, serial_port: serial.Serial, command: str) -> None:
+        """Send a command and require an acknowledgement from the device."""
         response = serial_link.exchange(serial_port, command)
         codec.require_ack(response, command)
