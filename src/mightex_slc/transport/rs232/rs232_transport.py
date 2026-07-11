@@ -33,7 +33,7 @@ from .capabilities import capabilities_for_module
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from ...contract import ControllerCapabilities, OperatingMode
+    from ...contract import ControllerCapabilities, NormalParameters, OperatingMode
 
 
 class _RS232Handle(TransportHandle):
@@ -91,15 +91,11 @@ class RS232Transport(Transport):
         self,
         handle: TransportHandle,
         channel: int,
-        current_max_ma: float,
-        current_set_ma: float,
+        parameters: NormalParameters,
     ) -> None:
         """Send the normal-mode current limits for one channel."""
         serial_port = self._require_open(handle)
-        self._command_ack(
-            serial_port,
-            codec.encode_normal(channel, current_max_ma, current_set_ma),
-        )
+        self._command_ack(serial_port, codec.encode_normal(channel, parameters))
 
     def set_active_mode(
         self,

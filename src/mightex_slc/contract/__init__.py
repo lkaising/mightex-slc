@@ -12,6 +12,7 @@ from .components import (
     Error,
     ErrorType,
     ModuleType,
+    NormalParameters,
     OperatingMode,
 )
 from .operations import (
@@ -51,6 +52,7 @@ __all__ = [
     "GetActiveModeReply",
     "GetActiveModeRequest",
     "ModuleType",
+    "NormalParameters",
     "OpenDeviceOk",
     "OpenDeviceReply",
     "OpenDeviceRequest",

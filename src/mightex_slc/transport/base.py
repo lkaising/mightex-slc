@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..contract import ControllerCapabilities, OperatingMode
+    from ..contract import ControllerCapabilities, NormalParameters, OperatingMode
 
 
 class TransportError(Exception):
@@ -97,8 +97,7 @@ class Transport(ABC):
         self,
         handle: TransportHandle,
         channel: int,
-        current_max_ma: float,
-        current_set_ma: float,
+        parameters: NormalParameters,
     ) -> None:
         """Store NORMAL-mode parameters for a one-based channel. Storing
         never changes output; raises CommandRejectedError when the device

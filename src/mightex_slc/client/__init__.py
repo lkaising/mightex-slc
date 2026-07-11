@@ -25,7 +25,7 @@ from .errors import (
     MightexLEDError,
     UnsupportedOperationError,
 )
-from .types import ControllerCapabilities, ModuleType, OperatingMode
+from .types import ControllerCapabilities, ModuleType, NormalParameters, OperatingMode
 
 __all__ = [
     "Channel",
@@ -37,6 +37,7 @@ __all__ = [
     "DeviceNotFoundError",
     "MightexLEDError",
     "ModuleType",
+    "NormalParameters",
     "OperatingMode",
     "UnsupportedOperationError",
     "open_device",

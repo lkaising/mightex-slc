@@ -105,13 +105,13 @@ Fixed by `examples/normal_mode_timed_on.py` (the acceptance example) and the
 polished naming from the contract branch's API skeleton. For the slice:
 
 ```python
-from mightex_slc import OperatingMode, open_device
+from mightex_slc import NormalParameters, OperatingMode, open_device
 
 PORT: str = "/dev/ttyUSB0"  # always explicit; open_fake_device() is the no-hardware path
 
 with open_device(port=PORT) as controller:        # -> Controller (context manager)
     channel = controller.channel(1)               # one-based; pure client-side accessor
-    channel.configure_normal(current_max_ma=200.0, current_set_ma=100.0)
+    channel.configure_normal(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
     channel.set_active_mode(OperatingMode.NORMAL)  # light on
     try:
         time.sleep(5.0)                           # timed-on is host-timed (no device primitive)
@@ -139,8 +139,10 @@ Decisions this implies (resolving stale skeleton docstrings):
   "holds a device_id and nothing else" is superseded.)
 - `channel(n)` never crosses the seam; it just constructs a `Channel` proxy
   carrying the controller's executor, its `device_id`, and `n`.
-- `configure_normal` takes flat `current_max_ma` / `current_set_ma` floats in
-  mA; nothing rescales or rounds them. The rs232 backend serializes values
+- `configure_normal` takes a `NormalParameters` model carrying
+  `current_max_ma` / `current_set_ma` floats in mA; the model refuses
+  `current_set_ma > current_max_ma` (and negative currents) at construction,
+  and nothing rescales or rounds the values. The rs232 backend serializes them
   faithfully and refuses what the wire cannot express (non-whole mA, and the
   0.1 mA-unit F*/X* families at open) rather than silently reinterpreting.
 - `OperatingMode` is an `IntEnum` with the device's own codes: DISABLE=0,
@@ -167,9 +169,10 @@ exception class mechanically.
 
 Errors surface in three distinct places:
 
-1. **Client-side at request construction** — invalid arguments (set > max,
-   negative current, channel < 1) fail Pydantic validation in `link` before
-   anything crosses the seam.
+1. **Client-side at request construction** — invalid arguments fail Pydantic
+   validation before anything crosses the seam: set > max and negative
+   currents at `NormalParameters` construction, channel < 1 when `link`
+   builds the request model.
 2. **Server-side re-validation in `dispatch`** — the trust boundary; inert
    with a well-behaved in-process client, load-bearing for any future
    untrusted caller.

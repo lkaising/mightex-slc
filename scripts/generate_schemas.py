@@ -66,6 +66,7 @@ from mightex_slc.contract import (  # noqa: E402
     GetActiveModeReply,
     GetActiveModeRequest,
     ModuleType,
+    NormalParameters,
     OpenDeviceReply,
     OpenDeviceRequest,
     OperatingMode,
@@ -93,6 +94,7 @@ COMPONENTS: dict[str, Any] = {
     "error": Error,
     "error_type": ErrorType,
     "module_type": ModuleType,
+    "normal_parameters": NormalParameters,
     "operating_mode": OperatingMode,
 }
 

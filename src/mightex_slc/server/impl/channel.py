@@ -18,7 +18,7 @@ at the contract.
 
 from __future__ import annotations
 
-from ...contract import ControllerCapabilities, OperatingMode
+from ...contract import ControllerCapabilities, NormalParameters, OperatingMode
 from ...transport import CommandRejectedError, Transport, TransportHandle
 
 
@@ -47,9 +47,9 @@ class ChannelModel:
     def number(self) -> int:
         return self._number
 
-    def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
+    def configure_normal(self, parameters: NormalParameters) -> None:
         """Store NORMAL-mode parameters for this channel; output unchanged."""
-        self._transport.configure_normal(self._handle, self._number, current_max_ma, current_set_ma)
+        self._transport.configure_normal(self._handle, self._number, parameters)
 
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Make a mode active on this channel, effective immediately."""

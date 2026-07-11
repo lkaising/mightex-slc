@@ -28,7 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from ...contract import OperatingMode
+from ...contract import NormalParameters, OperatingMode
 from ..base import CommandRejectedError, TransportError
 
 ECHO_OFF_COMMAND: Final[str] = "ECHOOFF"
@@ -47,10 +47,10 @@ class DeviceInfo:
 # --- Command encoding ---
 
 
-def encode_normal(channel: int, current_max_ma: float, current_set_ma: float) -> str:
+def encode_normal(channel: int, parameters: NormalParameters) -> str:
     """Build the NORMAL command: store Imax/Iset for a channel, output unchanged."""
-    imax = _format_current_ma(current_max_ma)
-    iset = _format_current_ma(current_set_ma)
+    imax = _format_current_ma(parameters.current_max_ma)
+    iset = _format_current_ma(parameters.current_set_ma)
     return f"NORMAL {channel} {imax} {iset}"
 
 
@@ -120,8 +120,8 @@ def parse_mode(response: str) -> OperatingMode:
         raise TransportError(f"cannot parse an operating mode from {response!r}") from None
 
 
-def parse_current(response: str) -> tuple[float, float]:
-    """Extract integer mA (Imax, Iset) from the final two ?CURRENT response tokens."""
+def parse_current(response: str) -> NormalParameters:
+    """Extract stored NORMAL parameters from the final two ?CURRENT response tokens."""
     tokens = response.replace("#", "").split()
     if len(tokens) < 2:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}")
@@ -129,7 +129,10 @@ def parse_current(response: str) -> tuple[float, float]:
     max_current_text, set_current_text = tokens[-2:]
 
     try:
-        return float(int(max_current_text)), float(int(set_current_text))
+        return NormalParameters(
+            current_max_ma=float(int(max_current_text)),
+            current_set_ma=float(int(set_current_text)),
+        )
     except ValueError:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
 

@@ -10,30 +10,18 @@ from __future__ import annotations
 
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from ..base import ContractModel
 from ..components.error import Error
+from ..components.normal_parameters import NormalParameters
 from .base import ChannelRequest
 
 
 class ConfigureNormalRequest(ChannelRequest):
     """Set NORMAL-mode current parameters for a channel."""
 
-    current_max_ma: float = Field(
-        ge=0,
-        description="NORMAL-mode current limit, in mA",
-    )
-    current_set_ma: float = Field(
-        ge=0,
-        description="NORMAL-mode set current, in mA",
-    )
-
-    @model_validator(mode="after")
-    def _set_not_above_max(self) -> ConfigureNormalRequest:
-        if self.current_set_ma > self.current_max_ma:
-            raise ValueError("current_set_ma must be less than or equal to current_max_ma")
-        return self
+    parameters: NormalParameters = Field(description="NORMAL-mode current parameters to store")
 
 
 class ConfigureNormalOk(ContractModel):

@@ -12,19 +12,13 @@ request:
       description: One-based channel number
       minimum: 1
       type: integer
-    current_max_ma:
-      description: NORMAL-mode current limit, in mA
-      minimum: 0
-      type: number
-    current_set_ma:
-      description: NORMAL-mode set current, in mA
-      minimum: 0
-      type: number
+    parameters:
+      $ref: ../components/normal_parameters.yaml
+      description: NORMAL-mode current parameters to store
   required:
   - device_id
   - channel
-  - current_max_ma
-  - current_set_ma
+  - parameters
   title: ConfigureNormalRequest
   type: object
 reply:

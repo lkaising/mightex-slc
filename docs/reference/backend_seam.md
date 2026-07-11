@@ -165,9 +165,9 @@ trips legitimately deliver ints where floats/IntEnums are declared).
 
 Each operation follows the same pattern: `XRequest`, `XOk`, and
 `XReply = Annotated[XOk | Error, Field(discriminator="status")]` — a
-tagged union on the `"ok"`/`"error"` literal. Requests carry their own
-validation (e.g. `configure_normal` rejects `current_set_ma >
-current_max_ma` before anything crosses the seam).
+tagged union on the `"ok"`/`"error"` literal. Validation lives on the
+models themselves (e.g. `NormalParameters` rejects `current_set_ma >
+current_max_ma` at construction, before anything crosses the seam).
 
 `ErrorType` (`components/error_type.py`) is a `StrEnum` whose **values are
 literally the client exception class names** — errors travel as data and

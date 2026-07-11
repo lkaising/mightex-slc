@@ -38,6 +38,7 @@ from ..contract import (
     GetActiveModeOk,
     GetActiveModeReply,
     GetActiveModeRequest,
+    NormalParameters,
     OpenDeviceOk,
     OpenDeviceReply,
     OpenDeviceRequest,
@@ -107,16 +108,10 @@ def configure_normal(
     executor: RequestExecutor,
     device_id: str,
     channel: int,
-    current_max_ma: float,
-    current_set_ma: float,
+    parameters: NormalParameters,
 ) -> None:
     """Store NORMAL-mode current parameters for one channel; output unchanged."""
-    request = ConfigureNormalRequest(
-        device_id=device_id,
-        channel=channel,
-        current_max_ma=current_max_ma,
-        current_set_ma=current_set_ma,
-    )
+    request = ConfigureNormalRequest(device_id=device_id, channel=channel, parameters=parameters)
     _roundtrip(executor, "configure_normal", request, _CONFIGURE_NORMAL_REPLY)
 
 

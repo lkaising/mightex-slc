@@ -89,7 +89,7 @@ def _configure_normal(
 ) -> ConfigureNormalOk:
     """Configure a controller channel for normal operation."""
     model = session.get(request.device_id)
-    model.channel(request.channel).configure_normal(request.current_max_ma, request.current_set_ma)
+    model.channel(request.channel).configure_normal(request.parameters)
     return ConfigureNormalOk()
 
 

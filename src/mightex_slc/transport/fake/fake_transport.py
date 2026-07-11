@@ -21,6 +21,7 @@ from dataclasses import dataclass, replace
 from ...contract import (
     ControllerCapabilities,
     ModuleType,
+    NormalParameters,
     OperatingMode,
 )
 from ..base import (
@@ -93,18 +94,18 @@ class FakeTransport(Transport):
         self,
         handle: TransportHandle,
         channel: int,
-        current_max_ma: float,
-        current_set_ma: float,
+        parameters: NormalParameters,
     ) -> None:
         self._require_open(handle)
         state = self._channel(channel)
-        self._require_current_in_range("current_max_ma", current_max_ma)
-        self._require_current_in_range("current_set_ma", current_set_ma)
+        self._require_current_in_range("current_max_ma", parameters.current_max_ma)
+        self._require_current_in_range("current_set_ma", parameters.current_set_ma)
         # Stores parameters only; output changes only via set_active_mode.
-        # set > max is deliberately not checked: the real device's behavior
-        # there is an open question, and the contract rejects it upstream.
-        state.normal_current_max_ma = current_max_ma
-        state.normal_current_set_ma = current_set_ma
+        # set > max cannot arrive here: NormalParameters refuses it at
+        # construction, so the real device's behavior there stays an open
+        # question this fake never has to answer.
+        state.normal_current_max_ma = parameters.current_max_ma
+        state.normal_current_set_ma = parameters.current_set_ma
 
     def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         self._require_open(handle)

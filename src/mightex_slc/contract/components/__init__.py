@@ -10,6 +10,7 @@ from .controller_capabilities import ControllerCapabilities
 from .error import Error
 from .error_type import ErrorType
 from .module_type import ModuleType
+from .normal_parameters import NormalParameters
 from .operating_mode import OperatingMode
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "Error",
     "ErrorType",
     "ModuleType",
+    "NormalParameters",
     "OperatingMode",
 ]

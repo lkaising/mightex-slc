@@ -16,7 +16,8 @@ configure_normal, set_active_mode, and get_active_mode, and later slices add
 the rest. Like the Controller proxy, it holds no device state and no reference
 back to its Controller; it is a way to name one channel when building
 requests, which are sent through link. Bad arguments raise plain ValueError
-when link constructs the request model.
+when link constructs the request model; configure_normal's NormalParameters
+argument validates itself at construction, before the call.
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from typing import TYPE_CHECKING
 from . import link
 
 if TYPE_CHECKING:
-    from .types import OperatingMode
+    from .types import NormalParameters, OperatingMode
 
 
 class Channel:
@@ -47,29 +48,21 @@ class Channel:
     def number(self) -> int:
         return self._number
 
-    def configure_normal(self, current_max_ma: float, current_set_ma: float) -> None:
+    def configure_normal(self, parameters: NormalParameters) -> None:
         """Store NORMAL-mode current parameters for this channel; output is unchanged.
 
         Args:
-            current_max_ma: NORMAL-mode current limit, in mA. Must be >= 0.
-            current_set_ma: NORMAL-mode set current, in mA. Must be >= 0 and
-                no greater than `current_max_ma`.
+            parameters: The `NormalParameters` pair to store. Constructing it
+                enforces that both currents are >= 0 and that `current_set_ma`
+                is no greater than `current_max_ma`.
 
         Raises:
-            ValueError: If either current is negative or `current_set_ma`
-                exceeds `current_max_ma`.
             DeviceCommandError: If the device rejects the values or the
                 channel `number` is out of range for the module.
             ControllerClosedError: If the `Controller` has been closed.
             DeviceConnectionError: If communication with the device fails.
         """
-        link.configure_normal(
-            self._executor,
-            self._device_id,
-            self._number,
-            current_max_ma=current_max_ma,
-            current_set_ma=current_set_ma,
-        )
+        link.configure_normal(self._executor, self._device_id, self._number, parameters)
 
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Switch this channel's active working mode, effective immediately.
