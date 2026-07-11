@@ -47,23 +47,23 @@ class DeviceInfo:
     serial_number: str | None
 
 
-# --- Encoding: operations to command strings (no terminator; framing is I/O) ---
+# --- Command encoding ---
 
 
-def format_current_ma(value: float) -> str:
+def encode_normal(channel: int, current_max_ma: float, current_set_ma: float) -> str:
+    """Build the NORMAL command: store Imax/Iset for a channel, output unchanged."""
+    imax = _format_current_ma(current_max_ma)
+    iset = _format_current_ma(current_set_ma)
+    return f"NORMAL {channel} {imax} {iset}"
+
+
+def _format_current_ma(value: float) -> str:
     """Serialize a whole-milliamp value as wire integer text."""
     current_ma = float(value)
     if current_ma.is_integer():
         return str(int(current_ma))
 
     raise CommandRejectedError(f"current {current_ma!r} mA is not a whole-mA value")
-
-
-def encode_normal(channel: int, current_max_ma: float, current_set_ma: float) -> str:
-    """Build the NORMAL command: store Imax/Iset for a channel, output unchanged."""
-    imax = format_current_ma(current_max_ma)
-    iset = format_current_ma(current_set_ma)
-    return f"NORMAL {channel} {imax} {iset}"
 
 
 def encode_mode(channel: int, mode: OperatingMode) -> str:
@@ -81,7 +81,7 @@ def encode_query_current(channel: int) -> str:
     return f"?CURRENT {channel}"
 
 
-# --- Response classification ---
+# --- Response validation ---
 
 
 def check_response(response: str, command: str) -> str:
@@ -110,7 +110,7 @@ def require_ack(response: str, command: str) -> None:
     raise TransportError(f"expected '##' ack for {command!r}, got {response!r}")
 
 
-# --- Parsing: response strings to values (strip '#', split; never positional) ---
+# --- Response decoding ---
 
 
 def parse_mode(response: str) -> OperatingMode:
@@ -137,15 +137,6 @@ def parse_current(response: str) -> tuple[float, float]:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
 
 
-def _field_after(response: str, label: str) -> str | None:
-    """Return the whitespace-delimited field after label, or None."""
-    if label not in response:
-        return None
-
-    fields = response.split(label, 1)[1].split()
-    return fields[0] if fields else None
-
-
 def parse_device_info(response: str) -> DeviceInfo:
     """Parse a DEVICEINFO response by keyword, returning missing fields as None."""
     return DeviceInfo(
@@ -153,3 +144,12 @@ def parse_device_info(response: str) -> DeviceInfo:
         module_number=_field_after(response, "Module No.:"),
         serial_number=_field_after(response, "Serial No.:"),
     )
+
+
+def _field_after(response: str, label: str) -> str | None:
+    """Return the whitespace-delimited field after label, or None."""
+    if label not in response:
+        return None
+
+    fields = response.split(label, 1)[1].split()
+    return fields[0] if fields else None
