@@ -6,20 +6,11 @@
 #  Copyright (C) 2026 Logan Kaising.  All rights reserved.
 # ------------------------------------------------------------------------------
 
-"""The real hardware backend, implementing the transport interface over pyserial.
+"""Implement the serial Transport backend over pyserial.
 
-It opens the port through the serial_link recipe, identifies the controller
-with the codec and the capabilities map, and drives codec-built commands
-through serial_link.exchange.
-
-The port is always explicit and the backend never scans or probes for one.
-Opening a port is side-effecting (ECHOOFF enters PC Mode on MA/CA modules),
-so only the port the caller names is ever touched; an unspecified port fails
-the open.
-
-Sharing one physical port is not supported. On POSIX the open takes exclusive
-OS ownership (Windows ports are already exclusive at the OS open), and a port
-held elsewhere surfaces as DeviceNotPresentError.
+The caller must provide an explicit port. Each transport instance owns at most
+one physical port, using exclusive access where supported, and identifies the
+controller before returning an open handle.
 """
 
 from __future__ import annotations
@@ -41,9 +32,8 @@ from .capabilities import capabilities_for_module
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import Any
 
-    from ...contract import OperatingMode
+    from ...contract import ControllerCapabilities, OperatingMode
 
 
 class _RS232Handle(TransportHandle):
@@ -67,8 +57,6 @@ class RS232Transport(Transport):
         timeout: float = serial_link.DEFAULT_TIMEOUT_S,
         serial_factory: Callable[..., serial.Serial] = serial.Serial,
     ) -> None:
-        # serial_factory is the test seam: production uses pyserial, tests
-        # inject a scripted double without patching imports.
         self._baudrate = baudrate
         self._timeout = timeout
         self._serial_factory = serial_factory
@@ -87,10 +75,10 @@ class RS232Transport(Transport):
             timeout=self._timeout,
             serial_factory=self._serial_factory,
         )
+
         try:
             serial_number, capabilities = self._identify_controller(serial_port, port)
         except BaseException:
-            # BaseException on purpose: never leak a half-open port.
             serial_link.close_quietly(serial_port)
             raise
 
@@ -111,13 +99,21 @@ class RS232Transport(Transport):
         current_set_ma: float,
     ) -> None:
         """Send the normal-mode current limits for one channel."""
-        ser = self._require_open(handle)
-        self._command_ack(ser, codec.encode_normal(channel, current_max_ma, current_set_ma))
+        serial_port = self._require_open(handle)
+        self._command_ack(
+            serial_port,
+            codec.encode_normal(channel, current_max_ma, current_set_ma),
+        )
 
-    def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
+    def set_active_mode(
+        self,
+        handle: TransportHandle,
+        channel: int,
+        mode: OperatingMode,
+    ) -> None:
         """Send the operating-mode command for one channel."""
-        ser = self._require_open(handle)
-        self._command_ack(ser, codec.encode_mode(channel, mode))
+        serial_port = self._require_open(handle)
+        self._command_ack(serial_port, codec.encode_mode(channel, mode))
 
     def close_device(self, handle: TransportHandle) -> None:
         """Close the current handle, ignoring stale or already-closed handles."""
@@ -128,7 +124,11 @@ class RS232Transport(Transport):
         serial_link.close_quietly(self._handle.port)
         self._handle = None
 
-    def _identify_controller(self, serial_port: serial.Serial, port: str) -> tuple[Any, Any]:
+    def _identify_controller(
+        self,
+        serial_port: serial.Serial,
+        port: str,
+    ) -> tuple[str, ControllerCapabilities]:
         """Confirm a controller is answering and read its identity.
 
         ECHOOFF enters PC Mode on MA/CA modules (hygiene elsewhere) and
@@ -139,16 +139,24 @@ class RS232Transport(Transport):
         serial_link.exchange's TransportError. Returns (serial_number,
         capabilities).
         """
-        serial_link.exchange(serial_port, codec.ECHO_OFF_COMMAND, require_response=False)
+        serial_link.exchange(
+            serial_port,
+            codec.ECHO_OFF_COMMAND,
+            require_response=False,
+        )
         response = serial_link.exchange(
-            serial_port, codec.DEVICE_INFO_COMMAND, require_response=False
+            serial_port,
+            codec.DEVICE_INFO_COMMAND,
+            require_response=False,
         )
         if not response:
             raise DeviceNotPresentError(f"no response to DEVICEINFO at {port}")
+
         codec.check_response(response, codec.DEVICE_INFO_COMMAND)
         info = codec.parse_device_info(response)
         if info.module_number is None or info.serial_number is None:
             raise TransportError(f"DEVICEINFO did not identify the device: {response!r}")
+
         capabilities = capabilities_for_module(info.module_number)
         return info.serial_number, capabilities
 
@@ -157,6 +165,6 @@ class RS232Transport(Transport):
             raise InvalidHandleError("handle is not open")
         return self._handle.port
 
-    def _command_ack(self, ser: serial.Serial, command: str) -> None:
-        response = serial_link.exchange(ser, command)
+    def _command_ack(self, serial_port: serial.Serial, command: str) -> None:
+        response = serial_link.exchange(serial_port, command)
         codec.require_ack(response, command)
