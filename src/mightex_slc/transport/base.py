@@ -71,7 +71,7 @@ class TransportOpenResult:
 
 
 class Transport(ABC):
-    """The interface the server drives; carries the slice's four operations.
+    """The interface the server drives; carries the slice's five operations.
 
     It is allowed to grow with later slices without the contract moving.
     close_device is idempotent and never a safety action; every other
@@ -109,6 +109,12 @@ class Transport(ABC):
         """Make a mode active on a one-based channel, effective immediately.
         This is the only operation that changes output; raises
         CommandRejectedError when the device refuses the channel or mode."""
+
+    @abstractmethod
+    def get_active_mode(self, handle: TransportHandle, channel: int) -> OperatingMode:
+        """Report the mode currently active on a one-based channel. A pure
+        read: output and stored parameters never change. Raises
+        CommandRejectedError when the device refuses the channel."""
 
     @abstractmethod
     def close_device(self, handle: TransportHandle) -> None:

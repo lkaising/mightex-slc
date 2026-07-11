@@ -116,6 +116,10 @@ class FakeTransport(Transport):
             raise CommandRejectedError("TRIGGER mode is not available on MA modules")
         state.active_mode = mode  # the only mutation that changes output
 
+    def get_active_mode(self, handle: TransportHandle, channel: int) -> OperatingMode:
+        self._require_open(handle)
+        return self._channel(channel).active_mode
+
     def close_device(self, handle: TransportHandle) -> None:
         # Idempotent by identity: only the currently open handle closes the
         # session; a stale handle is a no-op and never touches a newer one.

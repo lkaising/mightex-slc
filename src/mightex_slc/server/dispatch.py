@@ -26,6 +26,8 @@ from ..contract import (
     ConfigureNormalOk,
     ConfigureNormalRequest,
     ContractModel,
+    GetActiveModeOk,
+    GetActiveModeRequest,
     OpenDeviceOk,
     OpenDeviceRequest,
     SetActiveModeOk,
@@ -103,6 +105,18 @@ def _set_active_mode(
     return SetActiveModeOk()
 
 
+def _get_active_mode(
+    request: GetActiveModeRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> GetActiveModeOk:
+    """Read back the active operating mode of a controller channel."""
+    model = session.get(request.device_id)
+    mode = model.channel(request.channel).get_active_mode()
+    return GetActiveModeOk(result=mode)
+
+
 def _close_device(
     request: CloseDeviceRequest,
     *,
@@ -119,5 +133,6 @@ _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "open_device": (OpenDeviceRequest, _open_device),
     "configure_normal": (ConfigureNormalRequest, _configure_normal),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
+    "get_active_mode": (GetActiveModeRequest, _get_active_mode),
     "close_device": (CloseDeviceRequest, _close_device),
 }

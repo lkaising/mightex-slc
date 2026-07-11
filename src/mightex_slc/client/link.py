@@ -35,6 +35,9 @@ from ..contract import (
     ContractModel,
     Error,
     ErrorType,
+    GetActiveModeOk,
+    GetActiveModeReply,
+    GetActiveModeRequest,
     OpenDeviceOk,
     OpenDeviceReply,
     OpenDeviceRequest,
@@ -90,6 +93,7 @@ def _roundtrip[OkT: ContractModel](
 _OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceReply)
 _CONFIGURE_NORMAL_REPLY: TypeAdapter[ConfigureNormalOk | Error] = TypeAdapter(ConfigureNormalReply)
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetActiveModeReply)
+_GET_ACTIVE_MODE_REPLY: TypeAdapter[GetActiveModeOk | Error] = TypeAdapter(GetActiveModeReply)
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
 
 
@@ -125,6 +129,16 @@ def set_active_mode(
     """Switch one channel's active working mode, effective immediately."""
     request = SetActiveModeRequest(device_id=device_id, channel=channel, mode=mode)
     _roundtrip(executor, "set_active_mode", request, _SET_ACTIVE_MODE_REPLY)
+
+
+def get_active_mode(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+) -> OperatingMode:
+    """Read back the mode currently driving one channel."""
+    request = GetActiveModeRequest(device_id=device_id, channel=channel)
+    return _roundtrip(executor, "get_active_mode", request, _GET_ACTIVE_MODE_REPLY).result
 
 
 def close_device(executor: RequestExecutor, device_id: str) -> None:

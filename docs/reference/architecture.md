@@ -1,6 +1,6 @@
 # mightex-slc — Architecture
 
-Status: source of truth as of 2026-07-07. Describes the design the current
+Status: source of truth as of 2026-07-11. Describes the design the current
 repo skeleton encodes and the `normal_mode_timed_on` slice proves. Device
 facts live in `device_and_protocol.md`; the step-by-step build order lives in
 `build_plan_normal_mode_timed_on.md`.
@@ -187,7 +187,8 @@ semantics in `device_and_protocol.md` §7:
 - One controller with a module family, ≥1 channels, a current resolution, and
   per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
 - `configure_normal` stores parameters **without changing output**;
-  `set_active_mode` is what "lights the LED" (mutates active mode).
+  `set_active_mode` is what "lights the LED" (mutates active mode);
+  `get_active_mode` reads the live mode back.
 - Reports capabilities on open (an MA04-MU persona, which keeps the
   no-trigger capability path exercised).
 
@@ -244,7 +245,8 @@ longer demands a reply (tolerate-empty, never ack-required); buffer hygiene is
 testable (the test double's `reset_input_buffer` really clears, so a transport
 that skips it fails tests); the 0.3 s settle lives with the probe that
 exercises it (`examples/probe_configure_readback.py` — no slice operation
-reads back, so the driver needs no delay); `?CURRENT` parsing is pinned by
+reads parameters back after a write, so the driver needs no delay);
+`?CURRENT` parsing is pinned by
 tests against the real 12-field reply. Still deliberately absent: thread
 safety and retries (out of slice scope; strict request/reply plus buffer
 hygiene is why no-retries works). Port auto-discovery remains a deliberate

@@ -111,6 +111,14 @@ class RS232Transport(Transport):
         serial_port = self._require_open(handle)
         self._command_ack(serial_port, codec.encode_mode(channel, mode))
 
+    def get_active_mode(self, handle: TransportHandle, channel: int) -> OperatingMode:
+        """Query the operating mode currently active on one channel."""
+        serial_port = self._require_open(handle)
+        command = codec.encode_query_mode(channel)
+        response = serial_link.exchange(serial_port, command)
+        codec.check_response(response, command)
+        return codec.parse_mode(response)
+
     def close_device(self, handle: TransportHandle) -> None:
         """Close the current handle, ignoring stale or already-closed handles."""
         if self._handle is None or handle is not self._handle:

@@ -12,9 +12,9 @@ The real device model for a controller, not a proxy.
 It owns the open transport handle and the capabilities reported at open,
 enforces capability policy (for example refusing channels the module does not
 have), and issues commands through the transport. It deliberately holds no
-mode or parameter state: the device owns its state, and no operation in this
-slice reads any back. One of these exists per open device and is owned by
-session.
+mode or parameter state: the device owns its state, and reads like
+get_active_mode go to the device every time. One of these exists per open
+device and is owned by session.
 """
 
 from __future__ import annotations

@@ -12,11 +12,11 @@ The Channel proxy: a typed, bound reference to one channel of an open device.
 A Channel carries the executor and device_id of the Controller that built it,
 plus a one-based channel number, and is obtained from controller.channel(n).
 Its methods each map to a per-channel contract operation; this slice carries
-configure_normal and set_active_mode, and later slices add the rest. Like the
-Controller proxy, it holds no device state and no reference back to its
-Controller; it is a way to name one channel when building requests, which are
-sent through link. Bad arguments raise plain ValueError when link constructs
-the request model.
+configure_normal, set_active_mode, and get_active_mode, and later slices add
+the rest. Like the Controller proxy, it holds no device state and no reference
+back to its Controller; it is a way to name one channel when building
+requests, which are sent through link. Bad arguments raise plain ValueError
+when link constructs the request model.
 """
 
 from __future__ import annotations
@@ -86,6 +86,21 @@ class Channel:
             DeviceConnectionError: If communication with the device fails.
         """
         link.set_active_mode(self._executor, self._device_id, self._number, mode)
+
+    def get_active_mode(self) -> OperatingMode:
+        """Read back the mode currently driving this channel.
+
+        Returns:
+            The `OperatingMode` the channel is currently in: `DISABLE`,
+            `NORMAL`, `STROBE`, or `TRIGGER`.
+
+        Raises:
+            DeviceCommandError: If the channel `number` is out of range for
+                the module.
+            ControllerClosedError: If the `Controller` has been closed.
+            DeviceConnectionError: If communication with the device fails.
+        """
+        return link.get_active_mode(self._executor, self._device_id, self._number)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} device_id={self._device_id!r} number={self._number}>"

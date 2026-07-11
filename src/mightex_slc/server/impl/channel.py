@@ -58,6 +58,10 @@ class ChannelModel:
             raise CommandRejectedError(f"TRIGGER mode is not available on {family} modules")
         self._transport.set_active_mode(self._handle, self._number, mode)
 
+    def get_active_mode(self) -> OperatingMode:
+        """Read back the mode currently driving this channel."""
+        return self._transport.get_active_mode(self._handle, self._number)
+
     def __repr__(self) -> str:
         module = self._capabilities.module_type.name
         return f"<{type(self).__name__} number={self._number} module={module}>"
