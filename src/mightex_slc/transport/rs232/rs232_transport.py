@@ -136,12 +136,14 @@ class RS232Transport(Transport):
             require_response=False,
         )
         if not response:
-            raise DeviceNotPresentError(f"no response to DEVICEINFO at {port}")
+            raise DeviceNotPresentError(f"no response to {codec.DEVICE_INFO_COMMAND} at {port}")
 
         codec.check_response(response, codec.DEVICE_INFO_COMMAND)
         info = codec.parse_device_info(response)
         if info.module_number is None or info.serial_number is None:
-            raise TransportError(f"DEVICEINFO did not identify the device: {response!r}")
+            raise TransportError(
+                f"{codec.DEVICE_INFO_COMMAND} did not identify the device: {response!r}"
+            )
 
         capabilities = capabilities_for_module(info.module_number)
         return info.serial_number, capabilities

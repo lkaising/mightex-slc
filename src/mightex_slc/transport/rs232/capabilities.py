@@ -30,6 +30,8 @@ class _FamilyCapabilities(NamedTuple):
 _MODULE_PATTERN: Final[re.Pattern[str]] = re.compile(r"-([A-Z]{2})(\d{2})")
 
 
+# Each row reads (resolution_ma, profile_steps, *feature flags).
+#
 # The vendor's "128 Steps" includes the mandatory (0, 0) terminator, leaving
 # 127 programmable steps. Whether the "2 Steps" families also lose a step is
 # undocumented, so their published value is retained.
@@ -65,6 +67,7 @@ def capabilities_for_module(module_number: str | None) -> ControllerCapabilities
             f"no documented capabilities for module family {family.name!r} in {module_number!r}"
         )
 
+    # FanPWM hardware ships only on the -MU knob variants.
     supports_fan_control = capabilities.fan_pwm and "-MU" in module_number.upper()
 
     return ControllerCapabilities(

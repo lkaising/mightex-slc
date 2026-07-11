@@ -9,6 +9,10 @@
 """
 The RS232 wire format: every command and response string, in one place.
 
+Every command gets exactly one name here: an encode_* function when it takes
+arguments, or a *_COMMAND constant when the transport sends it verbatim. No
+module outside this one spells a wire string.
+
 All of it is pure string-to-string work, which keeps the protocol testable
 without hardware. The serial_link module owns the bytes around these strings
 (terminators, buffer hygiene, timing); the client and server deal only in

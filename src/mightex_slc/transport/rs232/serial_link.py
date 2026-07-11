@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 import serial
 
@@ -29,13 +29,16 @@ from ..base import DeviceNotPresentError, TransportError
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-_TX_TERMINATOR = b"\n\r"
-_RX_TERMINATOR = b"\r"
-_DRAIN_DELAY_S = 0.02
-_ENCODING = "ascii"
+_TX_TERMINATOR: Final[bytes] = b"\n\r"
+_RX_TERMINATOR: Final[bytes] = b"\r"
+_DRAIN_DELAY_S: Final[float] = 0.02
+_ENCODING: Final[str] = "ascii"
 
-DEFAULT_BAUDRATE = 9600
-DEFAULT_TIMEOUT_S = 1.0
+# The device's fixed rate and the hardware-proven read timeout
+# (device_and_protocol.md §2). These are the transport constructor's
+# defaults; open_serial_port itself takes both explicitly.
+DEFAULT_BAUDRATE: Final[int] = 9600
+DEFAULT_TIMEOUT_S: Final[float] = 1.0
 
 
 def open_serial_port(
