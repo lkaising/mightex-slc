@@ -35,12 +35,7 @@ DEVICE_INFO_COMMAND: Final[str] = "DEVICEINFO"
 
 @dataclass(frozen=True, slots=True)
 class DeviceInfo:
-    """The fields a DEVICEINFO response may carry; each None when absent.
-
-    The vendor gives no grammar for this response, only sample strings that
-    differ between documents and the real unit, so every field is
-    independently optional and the caller decides what a missing one means.
-    """
+    """Fields parsed from a DEVICEINFO response."""
 
     firmware_version: str | None
     module_number: str | None
