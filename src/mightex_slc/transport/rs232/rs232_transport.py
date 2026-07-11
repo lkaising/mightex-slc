@@ -97,6 +97,14 @@ class RS232Transport(Transport):
         serial_port = self._require_open(handle)
         self._command_ack(serial_port, codec.encode_normal(channel, parameters))
 
+    def get_normal_parameters(self, handle: TransportHandle, channel: int) -> NormalParameters:
+        """Query the NORMAL-mode parameters stored for one channel."""
+        serial_port = self._require_open(handle)
+        command = codec.encode_query_current(channel)
+        response = serial_link.exchange(serial_port, command)
+        codec.check_response(response, command)
+        return codec.parse_current(response)
+
     def set_active_mode(
         self,
         handle: TransportHandle,

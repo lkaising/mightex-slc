@@ -71,7 +71,7 @@ class TransportOpenResult:
 
 
 class Transport(ABC):
-    """The interface the server drives; carries the slice's five operations.
+    """The interface the server drives; carries the slice's six operations.
 
     It is allowed to grow with later slices without the contract moving.
     close_device is idempotent and never a safety action; every other
@@ -102,6 +102,12 @@ class Transport(ABC):
         """Store NORMAL-mode parameters for a one-based channel. Storing
         never changes output; raises CommandRejectedError when the device
         refuses the arguments."""
+
+    @abstractmethod
+    def get_normal_parameters(self, handle: TransportHandle, channel: int) -> NormalParameters:
+        """Report the NORMAL-mode parameters stored for a one-based channel.
+        A pure read: output and stored parameters never change. Raises
+        CommandRejectedError when the device refuses the channel."""
 
     @abstractmethod
     def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:

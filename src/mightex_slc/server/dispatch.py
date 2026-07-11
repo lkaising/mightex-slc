@@ -26,6 +26,8 @@ from ..contract import (
     ContractModel,
     GetActiveModeOk,
     GetActiveModeRequest,
+    GetNormalParametersOk,
+    GetNormalParametersRequest,
     OpenDeviceOk,
     OpenDeviceRequest,
     SetActiveModeOk,
@@ -93,6 +95,18 @@ def _set_normal_parameters(
     return SetNormalParametersOk()
 
 
+def _get_normal_parameters(
+    request: GetNormalParametersRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> GetNormalParametersOk:
+    """Read back the NORMAL-mode parameters of a controller channel."""
+    model = session.get(request.device_id)
+    parameters = model.channel(request.channel).get_normal_parameters()
+    return GetNormalParametersOk(result=parameters)
+
+
 def _set_active_mode(
     request: SetActiveModeRequest,
     *,
@@ -132,6 +146,7 @@ def _close_device(
 _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "open_device": (OpenDeviceRequest, _open_device),
     "set_normal_parameters": (SetNormalParametersRequest, _set_normal_parameters),
+    "get_normal_parameters": (GetNormalParametersRequest, _get_normal_parameters),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
     "get_active_mode": (GetActiveModeRequest, _get_active_mode),
     "close_device": (CloseDeviceRequest, _close_device),

@@ -35,6 +35,9 @@ from ..contract import (
     GetActiveModeOk,
     GetActiveModeReply,
     GetActiveModeRequest,
+    GetNormalParametersOk,
+    GetNormalParametersReply,
+    GetNormalParametersRequest,
     NormalParameters,
     OpenDeviceOk,
     OpenDeviceReply,
@@ -95,6 +98,9 @@ _OPEN_DEVICE_REPLY: TypeAdapter[OpenDeviceOk | Error] = TypeAdapter(OpenDeviceRe
 _SET_NORMAL_PARAMETERS_REPLY: TypeAdapter[SetNormalParametersOk | Error] = TypeAdapter(
     SetNormalParametersReply
 )
+_GET_NORMAL_PARAMETERS_REPLY: TypeAdapter[GetNormalParametersOk | Error] = TypeAdapter(
+    GetNormalParametersReply
+)
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetActiveModeReply)
 _GET_ACTIVE_MODE_REPLY: TypeAdapter[GetActiveModeOk | Error] = TypeAdapter(GetActiveModeReply)
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
@@ -117,6 +123,18 @@ def set_normal_parameters(
         device_id=device_id, channel=channel, parameters=parameters
     )
     _roundtrip(executor, "set_normal_parameters", request, _SET_NORMAL_PARAMETERS_REPLY)
+
+
+def get_normal_parameters(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+) -> NormalParameters:
+    """Read back the NORMAL-mode parameters stored for one channel."""
+    request = GetNormalParametersRequest(device_id=device_id, channel=channel)
+    return _roundtrip(
+        executor, "get_normal_parameters", request, _GET_NORMAL_PARAMETERS_REPLY
+    ).result
 
 
 def set_active_mode(

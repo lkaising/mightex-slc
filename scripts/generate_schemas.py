@@ -63,6 +63,8 @@ from mightex_slc.contract import (  # noqa: E402
     ErrorType,
     GetActiveModeReply,
     GetActiveModeRequest,
+    GetNormalParametersReply,
+    GetNormalParametersRequest,
     ModuleType,
     NormalParameters,
     OpenDeviceReply,
@@ -84,6 +86,7 @@ HEADER = (
 OPERATIONS: dict[str, tuple[Any, Any]] = {
     "open_device": (OpenDeviceRequest, OpenDeviceReply),
     "set_normal_parameters": (SetNormalParametersRequest, SetNormalParametersReply),
+    "get_normal_parameters": (GetNormalParametersRequest, GetNormalParametersReply),
     "set_active_mode": (SetActiveModeRequest, SetActiveModeReply),
     "get_active_mode": (GetActiveModeRequest, GetActiveModeReply),
     "close_device": (CloseDeviceRequest, CloseDeviceReply),

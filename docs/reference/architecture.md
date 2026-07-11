@@ -190,6 +190,7 @@ semantics in `device_and_protocol.md` §7:
 - One controller with a module family, ≥1 channels, a current resolution, and
   per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
 - `set_normal_parameters` stores parameters **without changing output**;
+  `get_normal_parameters` reads the stored pair back;
   `set_active_mode` is what "lights the LED" (mutates active mode);
   `get_active_mode` reads the live mode back.
 - Reports capabilities on open (an MA04-MU persona, which keeps the
@@ -237,18 +238,21 @@ acks: "##" substring = ok; "#!"/"#?" prefix = device error; "is not defined" = u
 parsers: strip "#", split on whitespace; ?CURRENT takes the LAST two tokens
 ```
 
-Plus the behavioral obligations: ~0.3 s settle between a parameter write and
-its read-back; disable channels in `finally` (the device keeps driving LEDs
-after the port closes); program → verify → only then `STORE`; identifying the
-right `/dev/cu.usbserial-*` path on macOS is on the user (the library never
-scans for it), and running there is new ground.
+Plus the behavioral obligations: disable channels in `finally` (the device
+keeps driving LEDs after the port closes); program → verify → only then
+`STORE`; identifying the right `/dev/cu.usbserial-*` path on macOS is on the
+user (the library never scans for it), and running there is new ground. The
+once-listed ~0.3 s settle between a parameter write and its read-back was
+cleared on the bench on 2026-07-11 — 50/50 immediate `?CURRENT` reads came
+back fresh under the per-command hygiene above (`device_and_protocol.md`
+§9 #8).
 
 **The test project's weak spots, as addressed in this backend:** ECHOOFF no
 longer demands a reply (tolerate-empty, never ack-required); buffer hygiene is
 testable (the test double's `reset_input_buffer` really clears, so a transport
-that skips it fails tests); the 0.3 s settle lives with the probe that
-exercises it (`examples/probe_configure_readback.py` — no slice operation
-reads parameters back after a write, so the driver needs no delay);
+that skips it fails tests); the 0.3 s settle is gone
+(`examples/probe_normal_settle.py` cleared it on the bench, so
+`get_normal_parameters` is a plain query with no delay);
 `?CURRENT` parsing is pinned by
 tests against the real 12-field reply. Still deliberately absent: thread
 safety and retries (out of slice scope; strict request/reply plus buffer

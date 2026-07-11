@@ -3,8 +3,8 @@
 A Python library for driving Mightex Sirius SLC multi-channel LED controllers
 over RS232, built as vertical slices. The current slice is **NORMAL-mode
 timed turn-on**: open the controller, store per-channel current parameters,
-switch the channel on, switch it off, close — plus a live mode read-back
-(`get_active_mode`).
+switch the channel on, switch it off, close — plus read-backs of the live
+mode (`get_active_mode`) and the stored parameters (`get_normal_parameters`).
 
 Verified on real hardware (SLC-SA04-U/S, firmware 3.1.8) on 2026-07-06.
 

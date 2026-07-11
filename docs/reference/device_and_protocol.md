@@ -213,11 +213,13 @@ the real device. The future RS232 backend must honor all of them. **[HW]**
 7. **`?CURRENT` leads with calibration fields — more than documented.** The
    vendor says two; fw 3.1.8 returns ten before the currents (twelve fields
    total, observed 2026-07-06). Take the *last two* tokens for `Imax`/`Iset`.
-8. **~0.3 s settle between writing NORMAL params and reading them back.**
-   An immediate `?CURRENT` after `NORMAL` returned stale values on real
-   hardware. Mode round-trips need no such delay. (2026-07-06, fw 3.1.8, with
-   per-command reset + drain in place: one immediate read-back came back
-   fresh — keep the settle for read-backs as cheap insurance.)
+8. **The historical ~0.3 s post-write settle is cleared.** The old test
+   project saw stale values from an immediate `?CURRENT` after `NORMAL`; on
+   2026-07-11 (`examples/probe_normal_settle.py`, one SA04, fw 3.1.8,
+   channel 1) 50/50 alternating writes each read back fresh immediately
+   under the per-command reset + drain recipe. The staleness is attributed
+   to the old project's weaker buffer hygiene, not firmware lag; the driver
+   adds no delay. Mode round-trips never needed one.
 9. **`?TRIGP` response format varies.** A structured parser was written,
    tested, and abandoned for substring verification. Re-derive from hardware
    before trusting.

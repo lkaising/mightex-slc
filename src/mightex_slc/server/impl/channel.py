@@ -51,6 +51,10 @@ class ChannelModel:
         """Store NORMAL-mode parameters for this channel; output unchanged."""
         self._transport.set_normal_parameters(self._handle, self._number, parameters)
 
+    def get_normal_parameters(self) -> NormalParameters:
+        """Read back the NORMAL-mode parameters stored for this channel."""
+        return self._transport.get_normal_parameters(self._handle, self._number)
+
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Make a mode active on this channel, effective immediately."""
         if mode is OperatingMode.TRIGGER and not self._capabilities.supports_trigger_mode:

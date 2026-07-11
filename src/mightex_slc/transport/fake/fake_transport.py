@@ -107,6 +107,14 @@ class FakeTransport(Transport):
         state.normal_current_max_ma = parameters.current_max_ma
         state.normal_current_set_ma = parameters.current_set_ma
 
+    def get_normal_parameters(self, handle: TransportHandle, channel: int) -> NormalParameters:
+        self._require_open(handle)
+        state = self._channel(channel)
+        return NormalParameters(
+            current_max_ma=state.normal_current_max_ma,
+            current_set_ma=state.normal_current_set_ma,
+        )
+
     def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         self._require_open(handle)
         state = self._channel(channel)
