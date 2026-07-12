@@ -70,6 +70,10 @@ from mightex_slc.contract import (  # noqa: E402
     OpenDeviceReply,
     OpenDeviceRequest,
     OperatingMode,
+    PersistSettingsReply,
+    PersistSettingsRequest,
+    RestoreFactoryDefaultsReply,
+    RestoreFactoryDefaultsRequest,
     SetActiveModeReply,
     SetActiveModeRequest,
     SetNormalParametersReply,
@@ -89,6 +93,8 @@ OPERATIONS: dict[str, tuple[Any, Any]] = {
     "get_normal_parameters": (GetNormalParametersRequest, GetNormalParametersReply),
     "set_active_mode": (SetActiveModeRequest, SetActiveModeReply),
     "get_active_mode": (GetActiveModeRequest, GetActiveModeReply),
+    "persist_settings": (PersistSettingsRequest, PersistSettingsReply),
+    "restore_factory_defaults": (RestoreFactoryDefaultsRequest, RestoreFactoryDefaultsReply),
     "close_device": (CloseDeviceRequest, CloseDeviceReply),
 }
 

@@ -30,6 +30,10 @@ from ..contract import (
     GetNormalParametersRequest,
     OpenDeviceOk,
     OpenDeviceRequest,
+    PersistSettingsOk,
+    PersistSettingsRequest,
+    RestoreFactoryDefaultsOk,
+    RestoreFactoryDefaultsRequest,
     SetActiveModeOk,
     SetActiveModeRequest,
     SetNormalParametersOk,
@@ -131,6 +135,30 @@ def _get_active_mode(
     return GetActiveModeOk(result=mode)
 
 
+def _persist_settings(
+    request: PersistSettingsRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> PersistSettingsOk:
+    """Persist a controller's current settings to non-volatile memory."""
+    model = session.get(request.device_id)
+    model.persist_settings()
+    return PersistSettingsOk()
+
+
+def _restore_factory_defaults(
+    request: RestoreFactoryDefaultsRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> RestoreFactoryDefaultsOk:
+    """Load factory defaults into a controller's current settings."""
+    model = session.get(request.device_id)
+    model.restore_factory_defaults()
+    return RestoreFactoryDefaultsOk()
+
+
 def _close_device(
     request: CloseDeviceRequest,
     *,
@@ -149,5 +177,7 @@ _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "get_normal_parameters": (GetNormalParametersRequest, _get_normal_parameters),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
     "get_active_mode": (GetActiveModeRequest, _get_active_mode),
+    "persist_settings": (PersistSettingsRequest, _persist_settings),
+    "restore_factory_defaults": (RestoreFactoryDefaultsRequest, _restore_factory_defaults),
     "close_device": (CloseDeviceRequest, _close_device),
 }

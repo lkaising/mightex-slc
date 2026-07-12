@@ -112,8 +112,8 @@ Full command set **[V]**, annotated with what was actually exercised on real
 hardware **[HW]**. Channel numbers (`ch`) are **one-based**, 1–4 on a
 4-channel unit — in every command. Currents in mA (but see resolution, §7).
 
-The six commands the library sends today are marked ●; the rest are documented
-for future slices.
+The eight commands the library sends today are marked ●; the rest are
+documented for future slices.
 
 | | Command | Response | Notes |
 |---|---|---|---|
@@ -133,9 +133,9 @@ for future slices.
 | | `?TRIGGER ch` | `#Imax polarity` e.g. `#1200 0` | **[HW]** |
 | | `?TRIGP ch` | `#Iset Tset …` | ⚠ Response format is **unstable/undocumented** — a structured parser was written, tested, and abandoned for substring matching. Treat as unverified territory. **[HW]** |
 | | `LoadVoltage ch` | `#ch:mV` e.g. `#1:3200` | Mixed-case command. Voltage-monitoring ("V") modules only; the controller samples on a 20 ms interval, so meaningful in NORMAL or slow strobe only. Non-"V" modules (like the bench SA04) have no voltage monitoring — expect failures; treat as best-effort. **[V][HW]** |
-| | `STORE` | `##` | Persist *all* current volatile settings (all channels, all modes) to non-volatile memory. **[V][HW]** |
+| ● | `STORE` | `##` | Persist *all* current volatile settings (all channels, all modes) to non-volatile memory. **[V][HW]** |
 | | `RESET` | `##` | Soft reset. EchoOff is the default afterwards. **[V]** |
-| | `RESTOREDEF` | `##` | Load factory defaults into the *volatile* settings only; follow with `STORE` to persist. **[V]** |
+| ● | `RESTOREDEF` | `##` | Load factory defaults into the *volatile* settings only; follow with `STORE` to persist. **[V]** |
 | | `FanPWM level` | `##` | MA04/CA04-MU only. `level` 0–10 = 0–100% in 10% steps. **[V]** |
 
 ## 6. Operating modes and state model

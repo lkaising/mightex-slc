@@ -30,14 +30,22 @@ finally:
 
 ## The device powers on into its last stored state
 
-Nothing in this library writes the controller's non-volatile memory. But the
-device itself reloads whatever was last persisted (with the vendor tools'
-`STORE` command) on power-up, and each channel **resumes its stored mode
+This library writes the controller's non-volatile memory only through the
+explicit `persist_settings()` call (the device's `STORE` command); nothing
+persists as a side effect of any other operation. The device reloads whatever
+was last persisted on power-up, and each channel **resumes its stored mode
 immediately** — a channel stored active starts driving at power-on. Know what
-is stored in a unit before wiring an LED to it.
+is stored in a unit before wiring an LED to it. Non-volatile memory also
+wears with repeated writes: verify settings first, then persist deliberately,
+not on every iteration of an experiment.
 
 ## Factory defaults are a deliberate safety floor
 
 Fresh units default every channel to DISABLE with Imax 20 mA / Iset 10 mA,
 precisely so an unconfigured channel cannot damage a load. Raising `Imax` is
 the moment responsibility transfers to you.
+
+`restore_factory_defaults()` returns the current (volatile) settings to this
+floor **effective immediately** — a driving channel turns off — without
+persisting anything; follow it with `persist_settings()` to make the floor
+the power-on state.

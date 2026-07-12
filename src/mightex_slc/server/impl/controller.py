@@ -76,6 +76,14 @@ class ControllerModel:
             number=number,
         )
 
+    def persist_settings(self) -> None:
+        """Persist the device's current volatile settings to non-volatile memory."""
+        self._transport.persist_settings(self._handle)
+
+    def restore_factory_defaults(self) -> None:
+        """Load factory defaults into the device's current (volatile) settings."""
+        self._transport.restore_factory_defaults(self._handle)
+
     def close(self) -> None:
         """Release the device handle; idempotent through the transport."""
         self._transport.close_device(self._handle)

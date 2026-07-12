@@ -123,6 +123,26 @@ class Controller:
         """
         return Channel(self._executor, self._device_id, number)
 
+    def persist_settings(self) -> None:
+        """Persist all current channel and mode settings as the controller's power-on state.
+
+        Raises:
+            DeviceCommandError: If the device refuses the command.
+            ControllerClosedError: If the `Controller` has been closed.
+            DeviceConnectionError: If communication with the device fails.
+        """
+        link.persist_settings(self._executor, self._device_id)
+
+    def restore_factory_defaults(self) -> None:
+        """Load factory defaults into the controller's current volatile settings only.
+
+        Raises:
+            DeviceCommandError: If the device refuses the command.
+            ControllerClosedError: If the `Controller` has been closed.
+            DeviceConnectionError: If communication with the device fails.
+        """
+        link.restore_factory_defaults(self._executor, self._device_id)
+
     def close(self) -> None:
         """Close this controller and release its device connection."""
         if self._closed:

@@ -33,6 +33,8 @@ from ..base import CommandRejectedError, TransportError
 
 ECHO_OFF_COMMAND: Final[str] = "ECHOOFF"
 DEVICE_INFO_COMMAND: Final[str] = "DEVICEINFO"
+STORE_COMMAND: Final[str] = "STORE"
+RESTORE_DEF_COMMAND: Final[str] = "RESTOREDEF"
 
 
 @dataclass(frozen=True, slots=True)
