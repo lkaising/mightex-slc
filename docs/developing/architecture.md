@@ -1,15 +1,15 @@
-# mightex-slc — Architecture
+# Architecture
 
-Status: source of truth as of 2026-07-11. Describes the design the current
-repo skeleton encodes and the `normal_mode_timed_on` slice proves. Device
-facts live in `device_and_protocol.md`; the step-by-step build order lives in
-`build_plan_normal_mode_timed_on.md`.
+How the library is put together: the layers, the seams between them, and the
+decisions that are settled. Device and wire-protocol facts live in
+[`protocol.md`](protocol.md).
 
 ---
 
-## 1. Vision
+## 1. Design goals
 
-A Python library for Mightex SLC LED controllers with three properties:
+A Python library for Mightex SLC-series LED controllers with three
+properties:
 
 1. **A protocol-neutral public API.** No raw command or wire-protocol detail
    in any signature. The one place serial reality is visible is the open
@@ -26,14 +26,9 @@ A Python library for Mightex SLC LED controllers with three properties:
 3. **Fake-first development.** The whole stack runs against an in-memory fake
    device. Hardware is required only to validate the RS232 backend itself.
 
-And one working method: **slices, not layers-in-full.** Build the smallest
-complete vertical through every layer, get it green, then repeat the proven
-shape. Breadth-first is what killed the contract branch (see `lineage.md`).
-
-Standing rule inherited from that branch: **every asserted device fact traces
-to the vendor documents or hardware evidence, or is explicitly labeled a
-library convention.** It exists because a previous draft fabricated device
-facts that survived review for days.
+Standing rule: **every asserted device fact traces to the vendor documents or
+hardware evidence, or is explicitly labeled a library convention.** That is
+what the [V]/[HW]/[C] tags in [`protocol.md`](protocol.md) record.
 
 ## 2. The five layers
 
@@ -42,7 +37,7 @@ contract/            pure Pydantic models — depends on nothing
    ▲
 transport/base       the small interface the server drives
    ▲
-transport/fake       in-memory device        transport/rs232  (later, same interface)
+transport/fake       in-memory device        transport/rs232   real serial device
    ▲
 server/              sessions + device impl; validates with contract, drives transport
    ▲
@@ -59,7 +54,7 @@ mightex_slc/__init__ the assembled public surface
 - **`transport/`** — `base.py` defines what the server needs: open the
   controller at a serial-port target (returning a handle plus capabilities),
   issue per-device/per-channel commands, close. `fake/` implements it in
-  memory; `rs232/` will implement it against the real device (§6).
+  memory; `rs232/` implements it against the real device (§6).
 - **`server/`** — owns live state. `api.py` is the single entry point;
   `dispatch.py` reconstructs and re-validates the request model (the trust
   boundary) and routes by operation name; `session.py` maps `device_id` →
@@ -101,26 +96,26 @@ public injection point; no existing call site changes.
 
 ## 3. The public API surface
 
-Fixed by `examples/normal_mode_timed_on.py` (the acceptance example) and the
-polished naming from the contract branch's API skeleton. For the slice:
+The full reference lives in [`../using/api.md`](../using/api.md); the shape
+in one glance:
 
 ```python
+import time
+
 from mightex_slc import NormalParameters, OperatingMode, open_device
 
-PORT: str = "/dev/ttyUSB0"  # always explicit; open_fake_device() is the no-hardware path
-
-with open_device(port=PORT) as controller:        # -> Controller (context manager)
-    channel = controller.channel(1)               # one-based; pure client-side accessor
+with open_device(port="/dev/ttyUSB0") as controller:  # -> Controller (context manager)
+    channel = controller.channel(1)                   # one-based; pure client-side accessor
     channel.set_normal_parameters(NormalParameters(current_max_ma=200.0, current_set_ma=100.0))
-    channel.set_active_mode(OperatingMode.NORMAL)  # light on
+    channel.set_active_mode(OperatingMode.NORMAL)     # light on
     try:
-        time.sleep(5.0)                           # timed-on is host-timed (no device primitive)
+        time.sleep(5.0)                               # timed-on is host-timed (no device primitive)
     finally:
         channel.set_active_mode(OperatingMode.DISABLE)  # light off
 # context exit closes the device
 ```
 
-Decisions this implies (resolving stale skeleton docstrings):
+Decisions this shape encodes:
 
 - `open_device` targets a serial port; there is no enumeration and no port
   scanning. Probing a port is a side-effecting act (opening sends ECHOOFF,
@@ -135,8 +130,7 @@ Decisions this implies (resolving stale skeleton docstrings):
   of `open_device` itself, which is why opening is documented as
   side-effecting.
 - `Controller` caches the `ControllerCapabilities` returned by open, so
-  capability questions answer without a round trip. (The skeleton docstring's
-  "holds a device_id and nothing else" is superseded.)
+  capability questions answer without a round trip.
 - `channel(n)` never crosses the seam; it just constructs a `Channel` proxy
   carrying the controller's executor, its `device_id`, and `n`.
 - `set_normal_parameters` takes a `NormalParameters` model carrying
@@ -151,7 +145,7 @@ Decisions this implies (resolving stale skeleton docstrings):
 
 ## 4. Error model
 
-Public hierarchy (client-side, carried unchanged from the contract branch):
+Public hierarchy (client-side):
 
 ```
 MightexLEDError
@@ -185,7 +179,7 @@ Errors surface in three distinct places:
 ## 5. The fake transport
 
 The fake is not a mock — it is a tiny model of the device that encodes the
-semantics in `device_and_protocol.md` §7:
+semantics in [`protocol.md`](protocol.md) §6:
 
 - One controller with a module family, ≥1 channels, a current resolution, and
   per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
@@ -194,79 +188,53 @@ semantics in `device_and_protocol.md` §7:
   `set_active_mode` is what "lights the LED" (mutates active mode);
   `get_active_mode` reads the live mode back.
 - Reports capabilities on open (an MA04-MU persona, which keeps the
-  no-trigger capability path exercised).
+  no-trigger capability path exercised; the persona's exact values are
+  documented in [`../using/api.md`](../using/api.md)).
+- Channel state persists across close — mirroring the real device, which
+  keeps driving its outputs when the serial port closes — so an end state
+  stays inspectable after a run.
 
-The acceptance run checks the fake's end state (stored params match, mode is
-DISABLE after the `finally`), which is how the slice proves device semantics
-without hardware.
+Because the fake models device semantics, a NORMAL-mode script's end state
+(stored parameters match, mode is DISABLE after the `finally`) can be checked
+without hardware, with the full client → server → transport stack in play.
 
-## 6. The RS232 backend (built 2026-07-06, verified on the bench SA04)
+## 6. The RS232 backend
 
-Implemented in `transport/rs232/` and proven against the real controller — an
-LED driven on and off through the public API. The shape below is what was
-built; the deviations the bench unit showed from the recorded recipe are
-logged in `device_and_protocol.md` §§5–6 and §9.
+Implemented in `transport/rs232/` and hardware-verified on a bench
+SLC-SA04-U/S — an LED driven on and off through the public API.
 
-**Division of labor** (mirrors the test project's proven three-layer split;
-factored one step further 2026-07-10):
+**Division of labor:**
 
-- `transport/rs232/rs232_transport.py` — the `Transport` implementation:
-  handle lifecycle, the identify flow, per-operation orchestration.
-- `transport/rs232/serial_link.py` — owns the pyserial port, framing, and
-  timing. Knows bytes, not meaning.
-- `transport/rs232/codec.py` — pure functions: build command strings
-  (`"NORMAL 1 200 100"`), parse/validate responses. Knows meaning, not I/O.
-  Keeping the codec pure is what made the old stack testable against a
-  ~70-line fake serial object; preserve that property.
-- `transport/rs232/capabilities.py` — maps the DEVICEINFO module number to
-  the vendor matrix's documented capabilities; unknown families refuse
-  rather than guess.
+- `rs232_transport.py` — the `Transport` implementation: handle lifecycle,
+  the identify flow (ECHOOFF, then DEVICEINFO), per-operation orchestration.
+- `serial_link.py` — owns the pyserial port, framing, and timing. Knows
+  bytes, not meaning.
+- `codec.py` — pure functions: build command strings (`"NORMAL 1 200 100"`),
+  parse/validate responses. Knows meaning, not I/O. Keeping the codec pure is
+  what makes the protocol testable against a scripted serial object; preserve
+  that property.
+- `capabilities.py` — maps the DEVICEINFO module number to the vendor
+  matrix's documented capabilities; unknown families refuse rather than
+  guess.
 
-**The proven serial recipe** (details and provenance in
-`device_and_protocol.md` §§2–5, 9):
+The byte-level recipe the backend implements (terminators, drain, buffer
+hygiene, ack rules) is the hardware-proven one documented in
+[`protocol.md`](protocol.md) §§2–4 and §8.
 
-```
-open: 9600 8N1, no flow control, timeout 1.0 s
-      send ECHOOFF, consume the response, do NOT require an ack
-per command:
-      reset_input_buffer()
-      write(ascii + b"\n\r"); flush()
-      read_until(b"\r"); sleep(0.02); read(in_waiting)   # drain
-      decode ascii (errors="replace"); strip()
-      empty -> timeout error
-acks: "##" substring = ok; "#!"/"#?" prefix = device error; "is not defined" = unknown
-parsers: strip "#", split on whitespace; ?CURRENT takes the LAST two tokens
-```
-
-Plus the behavioral obligations: disable channels in `finally` (the device
-keeps driving LEDs after the port closes); program → verify → only then
-`STORE`; identifying the right `/dev/cu.usbserial-*` path on macOS is on the
-user (the library never scans for it), and running there is new ground. The
-once-listed ~0.3 s settle between a parameter write and its read-back was
-cleared on the bench on 2026-07-11 — 50/50 immediate `?CURRENT` reads came
-back fresh under the per-command hygiene above (`device_and_protocol.md`
-§9 #8).
-
-**The test project's weak spots, as addressed in this backend:** ECHOOFF no
-longer demands a reply (tolerate-empty, never ack-required); buffer hygiene is
-testable (the test double's `reset_input_buffer` really clears, so a transport
-that skips it fails tests); the 0.3 s settle is gone
-(`examples/probe_normal_settle.py` cleared it on the bench, so
-`get_normal_parameters` is a plain query with no delay);
-`?CURRENT` parsing is pinned by
-tests against the real 12-field reply. Still deliberately absent: thread
-safety and retries (out of slice scope; strict request/reply plus buffer
-hygiene is why no-retries works). Port auto-discovery remains a deliberate
-cut; see §7.
+Behavioral obligations the backend and its callers observe: disable channels
+in `finally` (the device keeps driving LEDs after the port closes), and
+program → verify → only then `STORE` (though nothing in the library sends
+`STORE` today). Deliberately absent: thread safety and retries — strict
+request/reply plus the buffer hygiene above is why no-retries works.
 
 **Choosing the transport.** There is no factory and no environment variable:
 the transport is always constructed explicitly. `open_device("/dev/ttyUSB0")`
 builds an `RS232Transport` privately; `open_fake_device()` is the fake,
-explicit by name; `open_device(transport=...)` injects any `Transport` — how
-the tests wrap the full real stack (dispatch, session, capability policy)
-around a `FakeTransport` or a scripted-serial `RS232Transport`. Opening the
-same physical serial port twice is not supported: the rs232 open asks the OS
-for exclusive ownership where the platform supports it (POSIX flock via
+explicit by name; `open_device(transport=...)` injects any `Transport` — the
+way to wrap the full real stack (dispatch, session, capability policy) around
+a `FakeTransport` or a scripted-serial `RS232Transport`. Opening the same
+physical serial port twice is not supported: the rs232 open asks the OS for
+exclusive ownership where the platform supports it (POSIX flock via
 pyserial's `exclusive` flag; Windows ports are exclusive at the OS open
 already) and surfaces the refusal as a connection error.
 
@@ -280,13 +248,12 @@ already) and surfaces the refusal as a connection error.
 - **No second validation layer.** Pydantic models are the only validator at
   the seam; hand-written jsonschema checks would drift.
 - **No schema-artifact ecosystem.** `schemas/` YAML is generated documentation,
-  kept current by rerunning the generator — nothing more. No consumers, no post-hoc refactoring
-  projects, no audits of generated output (see `lineage.md` for the cautionary
-  tale). The generator itself cross-references shared shapes instead of
-  inlining copies — an implementation detail of the generator, not an
-  ecosystem.
+  kept current by rerunning the generator — nothing more. No consumers, no
+  post-hoc refactoring projects, no audits of generated output. The generator
+  itself cross-references shared shapes instead of inlining copies — an
+  implementation detail of the generator, not an ecosystem.
 - **No HID/USB path, ever.** By decision the library interfaces over
-  RS232/serial only (`device_and_protocol.md` §2). Units without an RS232
+  RS232/serial only ([`protocol.md`](protocol.md) §1). Units without an RS232
   path are out of scope — a procurement constraint, not a software one.
 - **No port scanning or probing, ever.** No `enumerate_devices()`, no
   `list_serial_ports()`, no `probe_serial_ports()`. The vendor's

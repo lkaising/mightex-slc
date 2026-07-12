@@ -1,12 +1,21 @@
 # mightex-slc
 
-A Python library for driving Mightex Sirius SLC multi-channel LED controllers
-over RS232, built as vertical slices. The current slice is **NORMAL-mode
-timed turn-on**: open the controller, store per-channel current parameters,
-switch the channel on, switch it off, close — plus read-backs of the live
-mode (`get_active_mode`) and the stored parameters (`get_normal_parameters`).
+A Python library for driving Mightex Sirius SLC-series multi-channel LED
+controllers over RS232. Current scope is **NORMAL-mode control**: open the
+controller, store per-channel current parameters, switch a channel on and
+off, and read back the live mode and stored parameters — verified on real
+hardware (SLC-SA04-U/S, firmware 3.1.8).
 
-Verified on real hardware (SLC-SA04-U/S, firmware 3.1.8) on 2026-07-06.
+## Install
+
+Requires Python ≥ 3.12. Not yet on PyPI — install from a clone of this
+repository:
+
+```
+pip install -e .
+```
+
+Runtime dependencies (`pydantic`, `pyserial`) install automatically.
 
 ## Quick start
 
@@ -25,30 +34,9 @@ with open_device(port="/dev/ttyUSB0") as controller:
         channel.set_active_mode(OperatingMode.DISABLE)  # light off
 ```
 
-A runnable version lives at `../examples/normal_mode_timed_on.py`.
-
-## Install
-
-```
-pip install -e .
-```
-
-Runtime dependencies: `pydantic`, `pyserial`. Python ≥ 3.11.
-
-## Choosing a transport
-
-Two transports sit behind one interface, each opened explicitly by name —
-nothing is ever read from the environment:
-
-- **rs232** — the real serial backend. The port is always the one you name:
-  `open_device(port="/dev/ttyUSB0")`. The library never scans or probes
-  serial ports, and omitting the port fails loudly.
-- **fake** — an in-memory simulated controller for development and tests.
-  Open it with `open_fake_device()`; it is never selected implicitly.
-
-For tests and custom transports, `open_device(transport=...)` accepts any
-`mightex_slc.transport.Transport` instance and runs the full real stack over
-it.
+No hardware attached? `open_fake_device()` opens a built-in simulated
+controller; swap it in for the `open_device(...)` line and the rest runs
+unchanged.
 
 ## Safety notes (real LEDs)
 
@@ -57,19 +45,20 @@ it.
   happily overdrive a small LED.
 - **Closing the port does not turn output off.** The device keeps driving its
   channels; always `set_active_mode(OperatingMode.DISABLE)` in a `finally`.
-- Nothing in this library writes the controller's non-volatile memory.
+- **The device powers on into its last stored state.** Nothing in this
+  library writes the controller's non-volatile memory, but a channel stored
+  active starts driving at power-on — know what a unit has stored before
+  wiring an LED to it.
 
-## Layout
+All four rules, with the reasoning: [docs/using/safety.md](docs/using/safety.md).
 
-- `src/mightex_slc/` — the library: `contract/` (Pydantic seam models),
-  `client/` (public proxies), `server/` (dispatch, session, device models),
-  `transport/` (the fake and rs232 backends behind one interface).
-- `docs/` — sorted by trust: `vendor/` (authoritative protocol),
-  `reference/` (design + hardware-verified protocol digest), `handoff/`,
-  `stale/` (history; do not trust literally).
-- `schemas/` — generated documentation artifacts
-  (`python scripts/generate_schemas.py`); never hand-edited.
-- Tests and hardware bring-up probes live in the sibling `../examples/`
-  project, not in this package — see `../examples/README.md` for the
-  file-by-file run guide
-  (`cd ../examples && .venv/bin/python -m pytest tests -q`).
+## Documentation
+
+- **[Getting started](docs/using/getting-started.md)** — first script,
+  real vs. simulated device, finding your serial port.
+- **[Safety](docs/using/safety.md)** — the four rules for driving real LEDs.
+- **[Devices](docs/using/devices.md)** — supported SLC controllers, current
+  ceilings, cabling.
+- **[API reference](docs/using/api.md)** — the complete public surface.
+- **[All documentation](docs/README.md)** — adds architecture, protocol
+  notes, and the vendor manuals.
