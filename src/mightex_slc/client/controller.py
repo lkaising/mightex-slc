@@ -124,15 +124,7 @@ class Controller:
         return Channel(self._executor, self._device_id, number)
 
     def persist_settings(self) -> None:
-        """Persist the controller's current settings to non-volatile memory.
-
-        Writes the current (volatile) settings of all channels and modes to
-        the device's non-volatile memory, making them the state the device
-        reloads at power-on. Output is unchanged.
-
-        Non-volatile memory wears with repeated writes: verify settings
-        first and persist deliberately, not on every iteration of an
-        experiment. See docs/using/safety.md.
+        """Persist all current channel and mode settings as the controller's power-on state.
 
         Raises:
             DeviceCommandError: If the device refuses the command.
@@ -142,13 +134,7 @@ class Controller:
         link.persist_settings(self._executor, self._device_id)
 
     def restore_factory_defaults(self) -> None:
-        """Load factory defaults into the controller's current settings.
-
-        Affects the current (volatile) settings only: every channel goes to
-        `DISABLE` with the NORMAL safety-floor parameters (Imax 20 mA /
-        Iset 10 mA), effective immediately — a driving channel turns off.
-        Nothing is written to non-volatile memory; call `persist_settings()`
-        afterwards to keep the defaults across a power cycle.
+        """Load factory defaults into the controller's current volatile settings only.
 
         Raises:
             DeviceCommandError: If the device refuses the command.
