@@ -71,7 +71,7 @@ class TransportOpenResult:
 
 
 class Transport(ABC):
-    """The interface the server drives; carries the slice's six operations.
+    """The interface the server drives; carries the slice's operations.
 
     It is allowed to grow with later slices without the contract moving.
     close_device is idempotent and never a safety action; every other
@@ -112,14 +112,29 @@ class Transport(ABC):
     @abstractmethod
     def set_active_mode(self, handle: TransportHandle, channel: int, mode: OperatingMode) -> None:
         """Make a mode active on a one-based channel, effective immediately.
-        This is the only operation that changes output; raises
-        CommandRejectedError when the device refuses the channel or mode."""
+        Changes output; raises CommandRejectedError when the device refuses
+        the channel or mode."""
 
     @abstractmethod
     def get_active_mode(self, handle: TransportHandle, channel: int) -> OperatingMode:
         """Report the mode currently active on a one-based channel. A pure
         read: output and stored parameters never change. Raises
         CommandRejectedError when the device refuses the channel."""
+
+    @abstractmethod
+    def persist_settings(self, handle: TransportHandle) -> None:
+        """Store the device's current volatile settings — all channels, all
+        modes — to non-volatile memory, making them the state the device
+        reloads at power-on. Never changes output; raises
+        CommandRejectedError when the device refuses the command."""
+
+    @abstractmethod
+    def restore_factory_defaults(self, handle: TransportHandle) -> None:
+        """Load factory defaults into the device's volatile settings only:
+        every channel DISABLE, NORMAL Imax 20 mA / Iset 10 mA. Takes effect
+        immediately — a driving channel turns off — and persists nothing;
+        persist_settings writes the result to non-volatile memory. Raises
+        CommandRejectedError when the device refuses the command."""
 
     @abstractmethod
     def close_device(self, handle: TransportHandle) -> None:

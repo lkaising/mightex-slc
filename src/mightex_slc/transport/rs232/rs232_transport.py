@@ -123,6 +123,16 @@ class RS232Transport(Transport):
         codec.check_response(response, command)
         return codec.parse_mode(response)
 
+    def persist_settings(self, handle: TransportHandle) -> None:
+        """Send STORE: persist all volatile settings to non-volatile memory."""
+        serial_port = self._require_open(handle)
+        self._command_ack(serial_port, codec.STORE_COMMAND)
+
+    def restore_factory_defaults(self, handle: TransportHandle) -> None:
+        """Send RESTOREDEF: load factory defaults into volatile settings only."""
+        serial_port = self._require_open(handle)
+        self._command_ack(serial_port, codec.RESTORE_DEF_COMMAND)
+
     def close_device(self, handle: TransportHandle) -> None:
         """Close the current handle, ignoring stale or already-closed handles."""
         if self._handle is None or handle is not self._handle:

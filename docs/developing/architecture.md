@@ -187,6 +187,10 @@ semantics in [`protocol.md`](protocol.md) §6:
   `get_normal_parameters` reads the stored pair back;
   `set_active_mode` is what "lights the LED" (mutates active mode);
   `get_active_mode` reads the live mode back.
+- `restore_factory_defaults` resets every channel to the factory defaults
+  (which changes output — active channels go to DISABLE);
+  `persist_settings` acknowledges without effect, because the fake models
+  no power cycle where persisted state could be observed.
 - Reports capabilities on open (an MA04-MU persona, which keeps the
   no-trigger capability path exercised; the persona's exact values are
   documented in [`../using/api.md`](../using/api.md)).

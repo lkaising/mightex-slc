@@ -123,11 +123,23 @@ class FakeTransport(Transport):
             # TRIGGER is absent on MA modules. The exact wire response is
             # unverified, so the refusal surfaces as a rejected command.
             raise CommandRejectedError("TRIGGER mode is not available on MA modules")
-        state.active_mode = mode  # the only mutation that changes output
+        state.active_mode = mode  # changes output, like restore_factory_defaults
 
     def get_active_mode(self, handle: TransportHandle, channel: int) -> OperatingMode:
         self._require_open(handle)
         return self._channel(channel).active_mode
+
+    def persist_settings(self, handle: TransportHandle) -> None:
+        self._require_open(handle)
+        # The fake never models a power cycle, so persisted state would be
+        # unobservable; acknowledging without effect is the honest simulation.
+
+    def restore_factory_defaults(self, handle: TransportHandle) -> None:
+        self._require_open(handle)
+        # Volatile settings only, like the device: every channel back to the
+        # documented factory defaults. This changes output (active channels
+        # go to DISABLE); nothing is persisted.
+        self._channels = [FakeChannelState() for _ in range(FAKE_CAPABILITIES.channel_count)]
 
     def close_device(self, handle: TransportHandle) -> None:
         # Idempotent by identity: only the currently open handle closes the

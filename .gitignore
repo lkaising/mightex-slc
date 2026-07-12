@@ -49,6 +49,3 @@ Thumbs.db
 # Project specific
 *.log
 .ruff_cache/
-
-# Mightex SLC
-scratch/

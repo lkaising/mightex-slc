@@ -43,6 +43,12 @@ from ..contract import (
     OpenDeviceReply,
     OpenDeviceRequest,
     OperatingMode,
+    PersistSettingsOk,
+    PersistSettingsReply,
+    PersistSettingsRequest,
+    RestoreFactoryDefaultsOk,
+    RestoreFactoryDefaultsReply,
+    RestoreFactoryDefaultsRequest,
     SetActiveModeOk,
     SetActiveModeReply,
     SetActiveModeRequest,
@@ -103,6 +109,10 @@ _GET_NORMAL_PARAMETERS_REPLY: TypeAdapter[GetNormalParametersOk | Error] = TypeA
 )
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetActiveModeReply)
 _GET_ACTIVE_MODE_REPLY: TypeAdapter[GetActiveModeOk | Error] = TypeAdapter(GetActiveModeReply)
+_PERSIST_SETTINGS_REPLY: TypeAdapter[PersistSettingsOk | Error] = TypeAdapter(PersistSettingsReply)
+_RESTORE_FACTORY_DEFAULTS_REPLY: TypeAdapter[RestoreFactoryDefaultsOk | Error] = TypeAdapter(
+    RestoreFactoryDefaultsReply
+)
 _CLOSE_DEVICE_REPLY: TypeAdapter[CloseDeviceOk | Error] = TypeAdapter(CloseDeviceReply)
 
 
@@ -156,6 +166,18 @@ def get_active_mode(
     """Read back the mode currently driving one channel."""
     request = GetActiveModeRequest(device_id=device_id, channel=channel)
     return _roundtrip(executor, "get_active_mode", request, _GET_ACTIVE_MODE_REPLY).result
+
+
+def persist_settings(executor: RequestExecutor, device_id: str) -> None:
+    """Persist the device's current volatile settings to non-volatile memory."""
+    request = PersistSettingsRequest(device_id=device_id)
+    _roundtrip(executor, "persist_settings", request, _PERSIST_SETTINGS_REPLY)
+
+
+def restore_factory_defaults(executor: RequestExecutor, device_id: str) -> None:
+    """Load factory defaults into the device's volatile settings; persists nothing."""
+    request = RestoreFactoryDefaultsRequest(device_id=device_id)
+    _roundtrip(executor, "restore_factory_defaults", request, _RESTORE_FACTORY_DEFAULTS_REPLY)
 
 
 def close_device(executor: RequestExecutor, device_id: str) -> None:

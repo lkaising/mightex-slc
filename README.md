@@ -1,10 +1,12 @@
 # mightex-slc
 
 A Python library for driving Mightex Sirius SLC-series multi-channel LED
-controllers over RS232. Current scope is **NORMAL-mode control**: open the
-controller, store per-channel current parameters, switch a channel on and
-off, and read back the live mode and stored parameters — verified on real
-hardware (SLC-SA04-U/S, firmware 3.1.8).
+controllers over RS232. Current scope is **NORMAL-mode control** plus
+device-level settings commands: open the controller, store per-channel
+current parameters, switch a channel on and off, read back the live mode and
+stored parameters, persist the current settings to non-volatile memory, and
+restore factory defaults — NORMAL-mode control verified on real hardware
+(SLC-SA04-U/S, firmware 3.1.8).
 
 ## Install
 
@@ -45,10 +47,10 @@ unchanged.
   happily overdrive a small LED.
 - **Closing the port does not turn output off.** The device keeps driving its
   channels; always `set_active_mode(OperatingMode.DISABLE)` in a `finally`.
-- **The device powers on into its last stored state.** Nothing in this
-  library writes the controller's non-volatile memory, but a channel stored
-  active starts driving at power-on — know what a unit has stored before
-  wiring an LED to it.
+- **The device powers on into its last stored state.** This library writes
+  the controller's non-volatile memory only when you call
+  `persist_settings()` — but a channel stored active starts driving at
+  power-on, so know what a unit has stored before wiring an LED to it.
 
 All four rules, with the reasoning: [docs/using/safety.md](docs/using/safety.md).
 

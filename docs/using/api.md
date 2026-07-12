@@ -61,6 +61,9 @@ The fake simulates a single **SLC-MA04-MU**:
   NORMAL Imax 20 mA / Iset 10 mA.
 - Channel state persists after `close()` — a real controller keeps driving
   its outputs when the serial port closes, and the fake mirrors that.
+- `restore_factory_defaults()` resets every channel to the factory defaults;
+  `persist_settings()` acknowledges and changes nothing observable — the
+  fake does not model power cycles.
 
 ## `Controller`
 
@@ -74,6 +77,8 @@ closes it on exit.
 | `capabilities: ControllerCapabilities` | The device's reported capabilities, cached at open — reading it costs no round trip. |
 | `is_closed: bool` | Whether `close()` has been called. |
 | `channel(number: int) -> Channel` | Proxy for one channel. `number` is **one-based**, from 1 through `capabilities.channel_count`. Constructing the proxy is pure client-side work; an out-of-range number is rejected by the device on the first operation, as `DeviceCommandError`. |
+| `persist_settings() -> None` | Persist the current settings of all channels and modes to non-volatile memory — the state the device reloads at power-on. Output is unchanged. **NV memory wears**: verify settings first, persist deliberately — see [safety.md](safety.md). |
+| `restore_factory_defaults() -> None` | Load factory defaults (every channel `DISABLE`, NORMAL Imax 20 mA / Iset 10 mA) into the current **volatile** settings, **effective immediately** — a driving channel turns off. Persists nothing; follow with `persist_settings()` to keep the defaults across power cycles. |
 | `close() -> None` | Close the controller and release the device connection. Idempotent. **Not a safety action**: the device keeps driving its channels after close — see [safety.md](safety.md). |
 
 Operations on a closed controller (or its channels) raise
