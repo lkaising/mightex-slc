@@ -15,6 +15,16 @@ from .get_normal_parameters import (
     GetNormalParametersRequest,
 )
 from .open_device import OpenDeviceOk, OpenDeviceReply, OpenDeviceRequest
+from .persist_settings import (
+    PersistSettingsOk,
+    PersistSettingsReply,
+    PersistSettingsRequest,
+)
+from .restore_factory_defaults import (
+    RestoreFactoryDefaultsOk,
+    RestoreFactoryDefaultsReply,
+    RestoreFactoryDefaultsRequest,
+)
 from .set_active_mode import SetActiveModeOk, SetActiveModeReply, SetActiveModeRequest
 from .set_normal_parameters import (
     SetNormalParametersOk,
@@ -37,6 +47,12 @@ __all__ = [
     "OpenDeviceOk",
     "OpenDeviceReply",
     "OpenDeviceRequest",
+    "PersistSettingsOk",
+    "PersistSettingsReply",
+    "PersistSettingsRequest",
+    "RestoreFactoryDefaultsOk",
+    "RestoreFactoryDefaultsReply",
+    "RestoreFactoryDefaultsRequest",
     "SetActiveModeOk",
     "SetActiveModeReply",
     "SetActiveModeRequest",
