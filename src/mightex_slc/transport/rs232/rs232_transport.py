@@ -33,7 +33,13 @@ from .capabilities import capabilities_for_module
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from ...contract import ControllerCapabilities, NormalParameters, OperatingMode
+    from ...contract import (
+        ControllerCapabilities,
+        NormalParameters,
+        OperatingMode,
+        TriggerParameters,
+        TriggerProfile,
+    )
 
 
 class _RS232Handle(TransportHandle):
@@ -104,6 +110,52 @@ class RS232Transport(Transport):
         response = serial_link.exchange(serial_port, command)
         codec.check_response(response, command)
         return codec.parse_current(response)
+
+    def set_trigger_parameters(
+        self,
+        handle: TransportHandle,
+        channel: int,
+        parameters: TriggerParameters,
+    ) -> None:
+        """Send the TRIGGER-mode parameters for one channel."""
+        serial_port = self._require_open(handle)
+        self._command_ack(serial_port, codec.encode_trigger(channel, parameters))
+
+    def get_trigger_parameters(self, handle: TransportHandle, channel: int) -> TriggerParameters:
+        """Query the TRIGGER-mode parameters stored for one channel."""
+        serial_port = self._require_open(handle)
+        command = codec.encode_query_trigger(channel)
+        response = serial_link.exchange(serial_port, command)
+        codec.check_response(response, command)
+        return codec.parse_trigger(response)
+
+    def set_trigger_profile(
+        self,
+        handle: TransportHandle,
+        channel: int,
+        profile: TriggerProfile,
+    ) -> None:
+        """Send the TRIGP command sequence for one channel's trigger profile.
+
+        Each step is its own wire command; a failure partway leaves the
+        stored profile partial — surfaced plainly, never rolled back — and
+        it needs a complete rewrite.
+        """
+        serial_port = self._require_open(handle)
+        for command in codec.encode_trigger_profile(channel, profile):
+            self._command_ack(serial_port, command)
+
+    def get_trigger_profile(self, handle: TransportHandle, channel: int) -> TriggerProfile:
+        """Query the trigger profile stored for one channel.
+
+        The ?TRIGP response is multi-line, so this is the one exchange that
+        needs the extended quiet-drain read.
+        """
+        serial_port = self._require_open(handle)
+        command = codec.encode_query_trigger_profile(channel)
+        response = serial_link.exchange_multiline(serial_port, command)
+        codec.check_response(response, command)
+        return codec.parse_trigger_profile(response)
 
     def set_active_mode(
         self,

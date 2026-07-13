@@ -28,7 +28,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from ...contract import NormalParameters, OperatingMode
+from ...contract import (
+    FollowerProfile,
+    NormalParameters,
+    OperatingMode,
+    ProfileStep,
+    StepProfile,
+    TriggerParameters,
+    TriggerPolarity,
+)
+from ...contract.components.profiles import FOLLOWER_SENTINEL_DURATION_US
 from ..base import CommandRejectedError, TransportError
 
 ECHO_OFF_COMMAND: Final[str] = "ECHOOFF"
@@ -78,6 +87,41 @@ def encode_query_mode(channel: int) -> str:
 def encode_query_current(channel: int) -> str:
     """Build the ?CURRENT query for one channel's NORMAL parameters."""
     return f"?CURRENT {channel}"
+
+
+def encode_trigger(channel: int, parameters: TriggerParameters) -> str:
+    """Build the TRIGGER command: store Imax/polarity for a channel, output unchanged."""
+    imax = _format_current_ma(parameters.current_max_ma)
+    return f"TRIGGER {channel} {imax} {int(parameters.polarity)}"
+
+
+def encode_query_trigger(channel: int) -> str:
+    """Build the ?TRIGGER query for one channel's TRIGGER parameters."""
+    return f"?TRIGGER {channel}"
+
+
+def encode_trigger_profile(channel: int, profile: StepProfile | FollowerProfile) -> list[str]:
+    """Build the full TRIGP command sequence for one profile, terminator included.
+
+    A follower profile becomes the device's reserved first-step spelling —
+    the only place the 9999 sentinel reaches the wire. Every sequence ends
+    with the mandatory (0, 0) terminator step.
+    """
+    if isinstance(profile, FollowerProfile):
+        current = _format_current_ma(profile.current_ma)
+        commands = [f"TRIGP {channel} 0 {current} {FOLLOWER_SENTINEL_DURATION_US}"]
+    else:
+        commands = [
+            f"TRIGP {channel} {index} {_format_current_ma(step.current_ma)} {step.duration_us}"
+            for index, step in enumerate(profile.steps)
+        ]
+    commands.append(f"TRIGP {channel} {len(commands)} 0 0")
+    return commands
+
+
+def encode_query_trigger_profile(channel: int) -> str:
+    """Build the ?TRIGP query for one channel's trigger profile."""
+    return f"?TRIGP {channel}"
 
 
 # --- Response validation ---
@@ -137,6 +181,72 @@ def parse_current(response: str) -> NormalParameters:
         )
     except ValueError:
         raise TransportError(f"cannot parse NORMAL parameters from {response!r}") from None
+
+
+def parse_trigger(response: str) -> TriggerParameters:
+    """Extract stored TRIGGER parameters from a ?TRIGGER response like '#40 0'.
+
+    Unlike ?CURRENT there are no leading calibration fields, but the proven
+    last-two-tokens rule is kept for the same junk tolerance. The device can
+    hold a polarity this library never writes (it stores any polarity byte
+    verbatim); reading one back is a protocol violation, not a parameter set.
+    """
+    tokens = response.replace("#", "").split()
+    if len(tokens) < 2:
+        raise TransportError(f"cannot parse TRIGGER parameters from {response!r}")
+
+    max_current_text, polarity_text = tokens[-2:]
+
+    try:
+        return TriggerParameters(
+            current_max_ma=float(int(max_current_text)),
+            polarity=TriggerPolarity(int(polarity_text)),
+        )
+    except ValueError:
+        raise TransportError(f"cannot parse TRIGGER parameters from {response!r}") from None
+
+
+def parse_trigger_profile(response: str) -> StepProfile | FollowerProfile:
+    """Reconstruct a trigger profile from a multi-line ?TRIGP response.
+
+    The bench-derived grammar (protocol.md quirk #9): one 'Iset Tset' line
+    per step, '#' on the first line only, and the dump ends at the (0, 0)
+    terminator line — which must be present, or the response was truncated.
+    Parsed in the proven tolerant style: strip '#', split into tokens, take
+    pairs until (0, 0). A first step carrying the reserved follower duration
+    reads back as a FollowerProfile, mirroring how the device would play it.
+    """
+
+    def unparseable() -> TransportError:
+        return TransportError(f"cannot parse a trigger profile from {response!r}")
+
+    tokens = response.replace("#", "").split()
+    if not tokens or len(tokens) % 2:
+        raise unparseable()
+
+    try:
+        pairs = [
+            (int(current_text), int(duration_text))
+            for current_text, duration_text in zip(tokens[::2], tokens[1::2], strict=True)
+        ]
+    except ValueError:
+        raise unparseable() from None
+
+    if (0, 0) not in pairs:
+        raise unparseable()  # no terminator: the read was cut short
+    steps = pairs[: pairs.index((0, 0))]
+
+    try:
+        if steps and steps[0][1] == FOLLOWER_SENTINEL_DURATION_US:
+            return FollowerProfile(current_ma=float(steps[0][0]))
+        return StepProfile(
+            steps=tuple(
+                ProfileStep(current_ma=float(current), duration_us=duration)
+                for current, duration in steps
+            )
+        )
+    except ValueError:
+        raise unparseable() from None
 
 
 def parse_device_info(response: str) -> DeviceInfo:

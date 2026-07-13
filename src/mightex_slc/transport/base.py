@@ -24,7 +24,13 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..contract import ControllerCapabilities, NormalParameters, OperatingMode
+    from ..contract import (
+        ControllerCapabilities,
+        NormalParameters,
+        OperatingMode,
+        TriggerParameters,
+        TriggerProfile,
+    )
 
 
 class TransportError(Exception):
@@ -107,6 +113,47 @@ class Transport(ABC):
     def get_normal_parameters(self, handle: TransportHandle, channel: int) -> NormalParameters:
         """Report the NORMAL-mode parameters stored for a one-based channel.
         A pure read: output and stored parameters never change. Raises
+        CommandRejectedError when the device refuses the channel."""
+
+    @abstractmethod
+    def set_trigger_parameters(
+        self,
+        handle: TransportHandle,
+        channel: int,
+        parameters: TriggerParameters,
+    ) -> None:
+        """Store TRIGGER-mode parameters for a one-based channel. Storing
+        never changes output, and an armed channel stays armed. The real
+        device silently clamps an over-ceiling current limit while still
+        acknowledging, so callers verify by reading back, not from success
+        here. Raises CommandRejectedError when the device refuses the
+        arguments."""
+
+    @abstractmethod
+    def get_trigger_parameters(self, handle: TransportHandle, channel: int) -> TriggerParameters:
+        """Report the TRIGGER-mode parameters stored for a one-based channel.
+        A pure read: output and stored parameters never change. Raises
+        CommandRejectedError when the device refuses the channel."""
+
+    @abstractmethod
+    def set_trigger_profile(
+        self,
+        handle: TransportHandle,
+        channel: int,
+        profile: TriggerProfile,
+    ) -> None:
+        """Store a trigger profile for a one-based channel. Storing never
+        changes output. The real device clamps step currents against the
+        stored TRIGGER current limit at write time while still acknowledging,
+        so callers verify by reading back. A profile is written as multiple
+        wire commands; on a mid-write failure the stored profile is partial
+        and needs a complete rewrite — there is no rollback. Raises
+        CommandRejectedError when the device refuses the arguments."""
+
+    @abstractmethod
+    def get_trigger_profile(self, handle: TransportHandle, channel: int) -> TriggerProfile:
+        """Report the trigger profile stored for a one-based channel. A pure
+        read: output and stored parameters never change. Raises
         CommandRejectedError when the device refuses the channel."""
 
     @abstractmethod

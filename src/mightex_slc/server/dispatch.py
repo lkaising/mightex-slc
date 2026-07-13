@@ -28,6 +28,10 @@ from ..contract import (
     GetActiveModeRequest,
     GetNormalParametersOk,
     GetNormalParametersRequest,
+    GetTriggerParametersOk,
+    GetTriggerParametersRequest,
+    GetTriggerProfileOk,
+    GetTriggerProfileRequest,
     OpenDeviceOk,
     OpenDeviceRequest,
     PersistSettingsOk,
@@ -38,6 +42,10 @@ from ..contract import (
     SetActiveModeRequest,
     SetNormalParametersOk,
     SetNormalParametersRequest,
+    SetTriggerParametersOk,
+    SetTriggerParametersRequest,
+    SetTriggerProfileOk,
+    SetTriggerProfileRequest,
 )
 from ..transport import Transport, TransportError
 from .errors import to_error, unsupported_operation
@@ -111,6 +119,54 @@ def _get_normal_parameters(
     return GetNormalParametersOk(result=parameters)
 
 
+def _set_trigger_parameters(
+    request: SetTriggerParametersRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> SetTriggerParametersOk:
+    """Set the TRIGGER-mode parameters of a controller channel."""
+    model = session.get(request.device_id)
+    model.channel(request.channel).set_trigger_parameters(request.parameters)
+    return SetTriggerParametersOk()
+
+
+def _get_trigger_parameters(
+    request: GetTriggerParametersRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> GetTriggerParametersOk:
+    """Read back the TRIGGER-mode parameters of a controller channel."""
+    model = session.get(request.device_id)
+    parameters = model.channel(request.channel).get_trigger_parameters()
+    return GetTriggerParametersOk(result=parameters)
+
+
+def _set_trigger_profile(
+    request: SetTriggerProfileRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> SetTriggerProfileOk:
+    """Store a trigger profile on a controller channel."""
+    model = session.get(request.device_id)
+    model.channel(request.channel).set_trigger_profile(request.profile)
+    return SetTriggerProfileOk()
+
+
+def _get_trigger_profile(
+    request: GetTriggerProfileRequest,
+    *,
+    session: Session,
+    transport: Transport,
+) -> GetTriggerProfileOk:
+    """Read back the trigger profile stored on a controller channel."""
+    model = session.get(request.device_id)
+    profile = model.channel(request.channel).get_trigger_profile()
+    return GetTriggerProfileOk(result=profile)
+
+
 def _set_active_mode(
     request: SetActiveModeRequest,
     *,
@@ -175,6 +231,10 @@ _ROUTES: dict[str, tuple[type[ContractModel], Callable[..., ContractModel]]] = {
     "open_device": (OpenDeviceRequest, _open_device),
     "set_normal_parameters": (SetNormalParametersRequest, _set_normal_parameters),
     "get_normal_parameters": (GetNormalParametersRequest, _get_normal_parameters),
+    "set_trigger_parameters": (SetTriggerParametersRequest, _set_trigger_parameters),
+    "get_trigger_parameters": (GetTriggerParametersRequest, _get_trigger_parameters),
+    "set_trigger_profile": (SetTriggerProfileRequest, _set_trigger_profile),
+    "get_trigger_profile": (GetTriggerProfileRequest, _get_trigger_profile),
     "set_active_mode": (SetActiveModeRequest, _set_active_mode),
     "get_active_mode": (GetActiveModeRequest, _get_active_mode),
     "persist_settings": (PersistSettingsRequest, _persist_settings),

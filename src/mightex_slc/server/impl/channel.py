@@ -18,7 +18,14 @@ at the contract.
 
 from __future__ import annotations
 
-from ...contract import ControllerCapabilities, NormalParameters, OperatingMode
+from ...contract import (
+    ControllerCapabilities,
+    NormalParameters,
+    OperatingMode,
+    StepProfile,
+    TriggerParameters,
+    TriggerProfile,
+)
 from ...transport import CommandRejectedError, Transport, TransportHandle
 
 
@@ -55,16 +62,46 @@ class ChannelModel:
         """Read back the NORMAL-mode parameters stored for this channel."""
         return self._transport.get_normal_parameters(self._handle, self._number)
 
+    def set_trigger_parameters(self, parameters: TriggerParameters) -> None:
+        """Store TRIGGER-mode parameters for this channel; output unchanged."""
+        self._require_trigger_support("TRIGGER-mode configuration")
+        self._transport.set_trigger_parameters(self._handle, self._number, parameters)
+
+    def get_trigger_parameters(self) -> TriggerParameters:
+        """Read back the TRIGGER-mode parameters stored for this channel."""
+        self._require_trigger_support("TRIGGER-mode configuration")
+        return self._transport.get_trigger_parameters(self._handle, self._number)
+
+    def set_trigger_profile(self, profile: TriggerProfile) -> None:
+        """Store a trigger profile for this channel; output unchanged."""
+        self._require_trigger_support("TRIGGER-mode configuration")
+        limit = self._capabilities.max_profile_steps
+        if isinstance(profile, StepProfile) and len(profile.steps) > limit:
+            family = self._capabilities.module_type.name
+            raise CommandRejectedError(
+                f"profile has {len(profile.steps)} steps; {family} modules store at most {limit}"
+            )
+        self._transport.set_trigger_profile(self._handle, self._number, profile)
+
+    def get_trigger_profile(self) -> TriggerProfile:
+        """Read back the trigger profile stored for this channel."""
+        self._require_trigger_support("TRIGGER-mode configuration")
+        return self._transport.get_trigger_profile(self._handle, self._number)
+
     def set_active_mode(self, mode: OperatingMode) -> None:
         """Make a mode active on this channel, effective immediately."""
-        if mode is OperatingMode.TRIGGER and not self._capabilities.supports_trigger_mode:
-            family = self._capabilities.module_type.name
-            raise CommandRejectedError(f"TRIGGER mode is not available on {family} modules")
+        if mode is OperatingMode.TRIGGER:
+            self._require_trigger_support("TRIGGER mode")
         self._transport.set_active_mode(self._handle, self._number, mode)
 
     def get_active_mode(self) -> OperatingMode:
         """Read back the mode currently driving this channel."""
         return self._transport.get_active_mode(self._handle, self._number)
+
+    def _require_trigger_support(self, subject: str) -> None:
+        if not self._capabilities.supports_trigger_mode:
+            family = self._capabilities.module_type.name
+            raise CommandRejectedError(f"{subject} is not available on {family} modules")
 
     def __repr__(self) -> str:
         module = self._capabilities.module_type.name

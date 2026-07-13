@@ -14,9 +14,18 @@ with no hardware attached. It lets the client, server, and contract run end to
 end before any real controller is in the loop.
 """
 
-from .fake_transport import FakeChannelState, FakeTransport
+from .fake_transport import (
+    MA04_PERSONA,
+    SA04_PERSONA,
+    FakeChannelState,
+    FakePersona,
+    FakeTransport,
+)
 
 __all__ = [
+    "MA04_PERSONA",
+    "SA04_PERSONA",
     "FakeChannelState",
+    "FakePersona",
     "FakeTransport",
 ]
