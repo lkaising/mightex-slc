@@ -1,17 +1,78 @@
-1. Tidy up the public facing docstring for the `set_trigger_parameters` and `set_trigger_profile` functions inside of `mightex-slc/src/mightex_slc/client/channel.py`.
+# TODO
 
-2. Find a better home for the `FOLLOWER_SENTINEL_DURATION_US` constant or at least take out the comment. Tidy up the docstring for `StepProfile` and tighten the `ValueError` message. Tidy up the docstring for `FollowerProfile`. Look into if it is possible to validate `current_ma` against `current_max_ma` which is part of `TriggerParameters`. Think about whether it makes sense for 3 contract models to be living inside of the same file. Look into if the `_first_step_is_not_the_follower_sentinel` validation holds in the case of doing strobe mode. File of interest can be found here: `mightex-slc/src/mightex_slc/contract/components/profiles.py`.
+Personal follow-up notes for reviewing and refining the TRIGGER-mode
+implementation.
 
-3. Tidy up and tighten the docstring for `TriggerParameters` inside of `mightex-slc/src/mightex_slc/contract/components/trigger_parameters.py`.
+## Public client API
 
-4. Tidy up and tighten the docstring for `TriggerPolarity` inside of `mightex-slc/src/mightex_slc/contract/components/trigger_polarity.py`.
+- [ ] Tidy and tighten the public-facing docstrings for
+  `Channel.set_trigger_parameters()` and `Channel.set_trigger_profile()`.
+  - File: `src/mightex_slc/client/channel.py`
 
-5. Same idea as point 2 where look into if it is possible to validate the `current_ma` arguement inside of `TriggerProfile` against the `current_max_ma` arguement inside of `TriggerParameters`. File is interest can be found here: `mightex-slc/src/mightex_slc/contract/operations/set_trigger_profile.py`.
+## Contract models and operations
 
-6. Not the most happy with the `StepProfile` length validation inside of `set_trigger_profile`, it would be nice if this could be handle via `pydantic` but that might not be possible. The same idea follows for the `_require_trigger_support` function, would be nice if that could also be handled via `pydantic`. File of interest here is: `mightex-slc/src/mightex_slc/server/impl/channel.py`.
+- [ ] Revisit the profile contract models and their organization.
+  - Find a better home for `FOLLOWER_SENTINEL_DURATION_US`, or at minimum
+    remove the comment above it.
+  - Tighten the `StepProfile` docstring and its `ValueError` message.
+  - Tighten the `FollowerProfile` docstring.
+  - Look into whether `current_ma` can be validated against
+    `TriggerParameters.current_max_ma`.
+  - Think about whether it makes sense for all three contract models to live
+    in the same file.
+  - Check whether `_first_step_is_not_the_follower_sentinel` remains valid
+    when `StepProfile` is used for STROBE mode.
+  - File: `src/mightex_slc/contract/components/profiles.py`
 
-7. Not the most happy the implementation of the `encode_trigger_profile` function and its docstring should be tightened. Tighten the docstring inside of the `parse_trigger` function. Not the most happy with the implementation of the `parse_trigger_profile` function, also its docstring should be tightened. File of interest can be found here: `mightex-slc/src/mightex_slc/transport/rs232/codec.py`.
+- [ ] Tighten the `TriggerParameters` docstring.
+  - File: `src/mightex_slc/contract/components/trigger_parameters.py`
 
-8. The docstrings inside of the fucntions `set_trigger_profile` and `get_trigger_profile` shoud be tightened. Inside of the `get_trigger_profile` function the function call to `exchange_multiline` feel more like a hack than anything. Not the most happy with that. The file of interest here is: `mightex-slc/src/mightex_slc/transport/rs232/rs232_transport.py`.
+- [ ] Tighten the `TriggerPolarity` docstring.
+  - File: `src/mightex_slc/contract/components/trigger_polarity.py`
 
-9. The most happy with the introduction of the `_QUIET_WINDOW_S`, `_QUIET_CAP_S`, and `_QUIET_POLL_S` constants, they also feel more like a hack than anything, will need to look into this. For these constants too, take out the comment block above. For the `exchange_multiline` function and the `_drain_until_quiet` helper, not the most happy with this, also feels like a hack. Would much rather have one unified exachange function. Also, the docstring inside of `exchange_multiline` needs to be tightened if preserved. File of intereset here is: `mightex-slc/src/mightex_slc/transport/rs232/serial_link.py`.
+- [ ] Following the related question in `profiles.py`, look into whether the
+  `current_ma` value in a `TriggerProfile` can be validated against
+  `TriggerParameters.current_max_ma` as part of the `set_trigger_profile`
+  operation.
+  - File: `src/mightex_slc/contract/operations/set_trigger_profile.py`
+
+## Server policy
+
+- [ ] I am not fully satisfied with the `StepProfile` length validation in
+  `ChannelModel.set_trigger_profile()`.
+  - I would prefer Pydantic to handle this validation if feasible, although
+    that may not be possible.
+  - The same preference applies to `_require_trigger_support()`: look into
+    whether Pydantic can handle it instead.
+  - File: `src/mightex_slc/server/impl/channel.py`
+
+## RS232 codec
+
+- [ ] I am not fully satisfied with parts of the trigger-profile encoding and
+  parsing implementation.
+  - Revisit `encode_trigger_profile()` and tighten its docstring.
+  - Tighten the `parse_trigger()` docstring.
+  - Revisit `parse_trigger_profile()` and tighten its docstring.
+  - File: `src/mightex_slc/transport/rs232/codec.py`
+
+## RS232 transport
+
+- [ ] Tighten the docstrings for `set_trigger_profile()` and
+  `get_trigger_profile()`.
+  - I am not fully satisfied with the direct use of `exchange_multiline()`
+    inside `get_trigger_profile()`; it feels more like a workaround than a
+    clean design.
+  - File: `src/mightex_slc/transport/rs232/rs232_transport.py`
+
+## Serial link
+
+- [ ] I am not fully satisfied with the multiline exchange mechanism; parts
+  of it feel more like a workaround than a clean design.
+  - Revisit the introduction of `_QUIET_WINDOW_S`, `_QUIET_CAP_S`, and
+    `_QUIET_POLL_S`.
+  - Remove the comment block above those constants.
+  - Reconsider `exchange_multiline()` and `_drain_until_quiet()`.
+  - I would strongly prefer a single, unified exchange function that supports
+    both ordinary and multiline responses.
+  - Tighten the `exchange_multiline()` docstring if the function is retained.
+  - File: `src/mightex_slc/transport/rs232/serial_link.py`
