@@ -182,18 +182,27 @@ The fake is not a mock — it is a tiny model of the device that encodes the
 semantics in [`protocol.md`](protocol.md) §6:
 
 - One controller with a module family, ≥1 channels, a current resolution, and
-  per-channel state: active mode, stored NORMAL `Imax`/`Iset`.
+  per-channel state: active mode, stored NORMAL `Imax`/`Iset`, stored TRIGGER
+  `Imax`/polarity, and a stored trigger profile.
 - `set_normal_parameters` stores parameters **without changing output**;
   `get_normal_parameters` reads the stored pair back;
   `set_active_mode` is what "lights the LED" (mutates active mode);
-  `get_active_mode` reads the live mode back.
+  `get_active_mode` reads the live mode back. The trigger set/get pairs work
+  the same way — configuration never changes output.
+- Trigger configuration mimics the bench-measured device: it is never
+  rejected, it **silently clamps** (an over-ceiling TRIGGER `Imax` to the
+  pulsed ceiling; profile step currents to the `Imax` stored at write time),
+  so the verify-by-read-back workflow is exercisable without hardware.
 - `restore_factory_defaults` resets every channel to the factory defaults
   (which changes output — active channels go to DISABLE);
   `persist_settings` acknowledges without effect, because the fake models
   no power cycle where persisted state could be observed.
-- Reports capabilities on open (an MA04-MU persona, which keeps the
-  no-trigger capability path exercised; the persona's exact values are
-  documented in [`../using/api.md`](../using/api.md)).
+- The simulated device is chosen by a persona at construction. The default
+  (and what `open_fake_device()` uses) is an MA04-MU, which keeps the
+  no-trigger capability path exercised; an SA04-like trigger-capable persona
+  mirrors the bench unit, including its measured trigger factory defaults.
+  The personas' exact values are documented in
+  [`../using/api.md`](../using/api.md).
 - Channel state persists across close — mirroring the real device, which
   keeps driving its outputs when the serial port closes — so an end state
   stays inspectable after a run.

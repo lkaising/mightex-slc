@@ -112,7 +112,7 @@ Full command set **[V]**, annotated with what was actually exercised on real
 hardware **[HW]**. Channel numbers (`ch`) are **one-based**, 1–4 on a
 4-channel unit — in every command. Currents in mA (but see resolution, §7).
 
-The eight commands the library sends today are marked ●; the rest are
+The twelve commands the library sends today are marked ●; the rest are
 documented for future slices.
 
 | | Command | Response | Notes |
@@ -128,10 +128,10 @@ documented for future slices.
 | | `STRP ch step Iset Tset` | `##` | Strobe profile step. `step` 0–127; `Tset` in µs; a `0 0` pair must terminate the profile (so 127 usable steps; **2 usable on SA/SV/FA/FV/HA/HV/MA/CA**). **[V]** |
 | | `?STROBE ch` | `#Imax Repeat` | **[V]**, never exercised on hardware. |
 | | `?STRP ch` | multi-line `#Iset Tset` pairs | **[V]**, never exercised on hardware. |
-| | `TRIGGER ch Imax polarity` | `##` | Trigger params; polarity 0 rising, 1 falling. Not available on MA/CA. ⚠ No argument validation observed: Imax above the pulsed ceiling is silently clamped (3501 → stored 3500) and an invalid polarity (2) is stored verbatim, both acked `##` (2026-07-12; quirk #15). **[V][HW]** |
-| | `TRIGP ch step Iset Tset` | `##` | Trigger profile step, same semantics as `STRP`. Special: **first step with `Tset` = 9999 makes the output follow the trigger input level** ("follower mode") at `Iset`. ⚠ A step current above the stored TRIGGER Imax is silently clamped to it at write time, acked `##` (2026-07-12; quirk #15). **[V][HW]** |
-| | `?TRIGGER ch` | `#Imax polarity` e.g. `#1200 0` | **[HW]** |
-| | `?TRIGP ch` | multi-line: `#Iset0 Tset0` then one `Iset Tset` line per step, terminator line included | Resolved 2026-07-12: stable and parseable under per-command hygiene, but **multi-line** — needs an extended quiet-drain read, not the standard single drain. See quirk #9 for the grammar. **[HW]** |
+| ● | `TRIGGER ch Imax polarity` | `##` | Trigger params; polarity 0 rising, 1 falling. Not available on MA/CA. ⚠ No argument validation observed: Imax above the pulsed ceiling is silently clamped (3501 → stored 3500) and an invalid polarity (2) is stored verbatim, both acked `##` (2026-07-12; quirk #15). **[V][HW]** |
+| ● | `TRIGP ch step Iset Tset` | `##` | Trigger profile step, same semantics as `STRP`. Special: **first step with `Tset` = 9999 makes the output follow the trigger input level** ("follower mode") at `Iset`. ⚠ A step current above the stored TRIGGER Imax is silently clamped to it at write time, acked `##` (2026-07-12; quirk #15). **[V][HW]** |
+| ● | `?TRIGGER ch` | `#Imax polarity` e.g. `#1200 0` | **[HW]** |
+| ● | `?TRIGP ch` | multi-line: `#Iset0 Tset0` then one `Iset Tset` line per step, terminator line included | Resolved 2026-07-12: stable and parseable under per-command hygiene, but **multi-line** — needs an extended quiet-drain read, not the standard single drain. See quirk #9 for the grammar. **[HW]** |
 | | `LoadVoltage ch` | `#ch:mV` e.g. `#1:3200` | Mixed-case command. Voltage-monitoring ("V") modules only; the controller samples on a 20 ms interval, so meaningful in NORMAL or slow strobe only. Non-"V" modules (like the bench SA04) have no voltage monitoring — expect failures; treat as best-effort. **[V][HW]** |
 | ● | `STORE` | `##` | Persist *all* current volatile settings (all channels, all modes) to non-volatile memory. **[V][HW]** |
 | | `RESET` | `##` | Soft reset. EchoOff is the default afterwards. **[V]** |

@@ -31,13 +31,16 @@ ruff check src scripts
 
 The library is built in **vertical slices**: the smallest complete path
 through every layer — contract, transport, server, client — proven end to
-end, then repeated for the next capability. The current slice is NORMAL-mode
-timed turn-on with read-backs.
+end, then repeated for the next capability. The current slice is TRIGGER-mode
+configuration with read-backs (parameters and profiles; arming stays with
+`set_active_mode`).
 
 ## Verifying changes
 
-The repository ships no test suite. Exercise changes end to end against the
-simulated device instead:
+The repository itself ships no test suite; the hardware-free pytest suite
+lives in the sibling `examples/tests` directory (see its README) and runs the
+whole stack over the fake transport and scripted serial bytes. Exercise
+changes there, or end to end against the simulated device directly:
 
 - `open_fake_device()` runs the full client → server → transport stack over
   the in-memory fake — the quickest whole-stack check.

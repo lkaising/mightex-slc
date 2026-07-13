@@ -1,12 +1,16 @@
 # mightex-slc
 
 A Python library for driving Mightex Sirius SLC-series multi-channel LED
-controllers over RS232. Current scope is **NORMAL-mode control** plus
-device-level settings commands: open the controller, store per-channel
-current parameters, switch a channel on and off, read back the live mode and
-stored parameters, persist the current settings to non-volatile memory, and
-restore factory defaults — NORMAL-mode control verified on real hardware
-(SLC-SA04-U/S, firmware 3.1.8).
+controllers over RS232. Current scope is **NORMAL-mode control and
+TRIGGER-mode configuration** plus device-level settings commands: open the
+controller, store per-channel current parameters, configure trigger
+parameters and profiles (with read-back — the device silently clamps rather
+than reject, so verification matters), switch or arm a channel's mode, read
+back the live mode and stored parameters, persist the current settings to
+non-volatile memory, and restore factory defaults. NORMAL-mode control and
+trigger command/storage behavior verified on real hardware (SLC-SA04-U/S,
+firmware 3.1.8); trigger *playback* has not been exercised — no external
+trigger source has been wired yet.
 
 ## Install
 
@@ -52,13 +56,17 @@ unchanged.
   `persist_settings()` — but a channel stored active starts driving at
   power-on, so know what a unit has stored before wiring an LED to it.
 
-All four rules, with the reasoning: [docs/using/safety.md](docs/using/safety.md).
+- **Trigger configuration acks are not verification.** The device clamps
+  out-of-range trigger values silently; read back and compare when it
+  matters, and disable a channel before reprogramming it.
+
+All five rules, with the reasoning: [docs/using/safety.md](docs/using/safety.md).
 
 ## Documentation
 
 - **[Getting started](docs/using/getting-started.md)** — first script,
   real vs. simulated device, finding your serial port.
-- **[Safety](docs/using/safety.md)** — the four rules for driving real LEDs.
+- **[Safety](docs/using/safety.md)** — the five rules for driving real LEDs.
 - **[Devices](docs/using/devices.md)** — supported SLC controllers, current
   ceilings, cabling.
 - **[API reference](docs/using/api.md)** — the complete public surface.

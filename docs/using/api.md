@@ -7,6 +7,9 @@ from mightex_slc import (
     open_device, open_fake_device,          # entry points
     Controller, Channel,                    # proxies
     NormalParameters, OperatingMode,        # models
+    TriggerParameters, TriggerPolarity,
+    ProfileStep, StepProfile,
+    FollowerProfile, TriggerProfile,
     ControllerCapabilities, ModuleType,
     MightexLEDError, DeviceConnectionError, # exceptions
     DeviceNotFoundError, DeviceCommandError,
@@ -52,18 +55,37 @@ The fake simulates a single **SLC-MA04-MU**:
 
 - 4 channels, 1 mA current resolution, current range 0–1200 mA
   (values outside it are rejected as `DeviceCommandError`).
-- No TRIGGER mode — `set_active_mode(OperatingMode.TRIGGER)` raises
-  `DeviceCommandError`, which keeps the no-trigger capability path
-  exercisable without hardware.
+- No TRIGGER mode — `set_active_mode(OperatingMode.TRIGGER)` and every
+  trigger-configuration method raise `DeviceCommandError`, which keeps the
+  no-trigger capability path exercisable without hardware.
 - Reports `supports_fan_control=True` (an MA04-MU trait), no load-voltage
   read-back, `max_profile_steps=2`.
-- Every channel starts at the documented factory defaults: mode `DISABLE`,
-  NORMAL Imax 20 mA / Iset 10 mA.
+- Every channel starts at the factory defaults: mode `DISABLE`,
+  NORMAL Imax 20 mA / Iset 10 mA (documented), and the bench-measured
+  trigger defaults — TRIGGER Imax 10 mA, rising polarity, a one-step
+  (10 mA, 20 µs) profile.
 - Channel state persists after `close()` — a real controller keeps driving
   its outputs when the serial port closes, and the fake mirrors that.
 - `restore_factory_defaults()` resets every channel to the factory defaults;
   `persist_settings()` acknowledges and changes nothing observable — the
   fake does not model power cycles.
+
+For exercising the trigger path without hardware, the fake also ships a
+trigger-capable SA04-like persona (4 channels, TRIGGER supported, pulsed
+ceiling 3500 mA), selected explicitly at construction:
+
+```python
+from mightex_slc import open_device
+from mightex_slc.transport.fake import SA04_PERSONA, FakeTransport
+
+controller = open_device(transport=FakeTransport(persona=SA04_PERSONA))
+```
+
+Like the real device, this persona never rejects trigger configuration — it
+**silently clamps**: a TRIGGER current limit above the pulsed ceiling stores
+as the ceiling, and profile step currents above the stored limit store
+clamped, all while acknowledging. Reading back is the only way to see what
+was stored, exactly as on hardware.
 
 ## `Controller`
 
@@ -97,11 +119,53 @@ per mode and change nothing physically until the mode is made active.
 |---|---|
 | `set_normal_parameters(parameters: NormalParameters) -> None` | Store NORMAL-mode current parameters for this channel. **Output is unchanged** until NORMAL mode is activated. |
 | `get_normal_parameters() -> NormalParameters` | Read back the stored NORMAL-mode parameter pair. |
-| `set_active_mode(mode: OperatingMode) -> None` | Switch the channel's working mode, **effective immediately**: `NORMAL` starts driving the stored set current; `DISABLE` turns the channel off. |
+| `set_trigger_parameters(parameters: TriggerParameters) -> None` | Store TRIGGER-mode current limit and polarity. **Output is unchanged**; arming stays a separate `set_active_mode(OperatingMode.TRIGGER)` call. Raises `DeviceCommandError` on modules without TRIGGER mode. |
+| `get_trigger_parameters() -> TriggerParameters` | Read back the stored TRIGGER-mode parameter pair. |
+| `set_trigger_profile(profile: StepProfile \| FollowerProfile) -> None` | Store the trigger profile: timed steps, or follower mode. **Output is unchanged.** Raises `DeviceCommandError` on modules without TRIGGER mode or when the profile has more steps than `capabilities.max_profile_steps`. |
+| `get_trigger_profile() -> StepProfile \| FollowerProfile` | Read back the stored trigger profile. |
+| `set_active_mode(mode: OperatingMode) -> None` | Switch the channel's working mode, **effective immediately**: `NORMAL` starts driving the stored set current; `TRIGGER` arms the stored profile on the external trigger edge; `DISABLE` turns the channel off. |
 | `get_active_mode() -> OperatingMode` | Read back the mode currently driving the channel. |
 
 `Channel` also exposes `device_id: str` and `number: int` as read-only
 properties.
+
+### Trigger configuration workflow
+
+Two device facts shape how trigger configuration should be used
+([protocol reference](../developing/protocol.md), quirks #10 and #15):
+
+1. **An acknowledgement is not a verification.** The device never rejects
+   trigger configuration — it silently clamps or stores what it can and
+   acknowledges anyway. A TRIGGER current limit above the module's pulsed
+   ceiling stores as the ceiling; profile step currents above the stored
+   limit store clamped **at profile-write time** (which is why the library
+   sends parameters and profile as separate calls, parameters first). When
+   the stored values matter, verify with the getters and compare against
+   intent before persisting or arming.
+2. **Disable before reprogramming.** The device silently accepts `TRIGGER`
+   and `TRIGP` writes while a channel is armed and leaves it armed; what a
+   mid-playback reprogram does to an executing profile has never been
+   tested. The safe, hardware-proven sequence is: disable → set parameters →
+   set profile → verify → arm.
+
+```python
+channel.set_active_mode(OperatingMode.DISABLE)
+channel.set_trigger_parameters(TriggerParameters(current_max_ma=600.0,
+                                                 polarity=TriggerPolarity.RISING))
+channel.set_trigger_profile(StepProfile(steps=(
+    ProfileStep(current_ma=500.0, duration_us=2000),
+)))
+assert channel.get_trigger_profile() == StepProfile(steps=(
+    ProfileStep(current_ma=500.0, duration_us=2000),
+))                                                  # ack is not verify
+channel.set_active_mode(OperatingMode.TRIGGER)      # arm
+```
+
+Configuration never plays anything by itself: playback starts on the
+external trigger edge while the channel is armed. Playback-level behavior
+(pulse timing, follower output, retrigger semantics) has not been exercised
+on hardware by this project — the library configures and reads back storage;
+it makes no promises about execution.
 
 ## Models
 
@@ -123,6 +187,47 @@ The values are never rescaled or rounded. The RS232 backend serializes whole
 milliamps only: a non-integral value such as `100.5` is refused as
 `DeviceCommandError` rather than silently rounded.
 
+### `TriggerParameters`
+
+The TRIGGER-mode parameter pair for one channel: the current limit the
+profile steps are capped by, and the trigger edge. Immutable.
+
+| Field | Description |
+|---|---|
+| `current_max_ma: float` | TRIGGER-mode current limit, in mA. **This is the LED's protection** in pulsed mode — set it from the LED's datasheet ([safety.md](safety.md)). Profile step currents above it are clamped to it by the device, silently. |
+| `polarity: TriggerPolarity` | Which trigger input edge starts playback. |
+
+Validation at construction: `current_max_ma` must be ≥ 0 and `polarity` a
+valid `TriggerPolarity`. The device itself validates nothing here — it
+stores garbage polarities verbatim and clamps out-of-range currents while
+acknowledging — so this model is the only rejection a bad value gets.
+
+### `TriggerPolarity`
+
+An `IntEnum` of the two trigger edges, using the device's own wire codes:
+`RISING = 0`, `FALLING = 1`.
+
+### `ProfileStep`, `StepProfile`, `FollowerProfile`, `TriggerProfile`
+
+The trigger profile is what an armed channel plays on the trigger edge. It
+takes one of two shapes, and `TriggerProfile` is the union of both:
+
+- `StepProfile(steps=(ProfileStep(current_ma=..., duration_us=...), ...))` —
+  an ordinary profile: a sequence of timed steps played in order. An **empty**
+  `StepProfile` is valid and clears the profile (the channel does nothing on
+  trigger). `ProfileStep` and `StepProfile` are mode-neutral by design — a
+  future STROBE slice will reuse them.
+- `FollowerProfile(current_ma=...)` — trigger-only: the output follows the
+  trigger input level, driving `current_ma` while the input is asserted.
+
+Validation at construction: step currents ≥ 0; step durations 1 through
+99,999,999 µs; at most 127 steps (how many a given module actually stores is
+`capabilities.max_profile_steps`, enforced per device); and a first step of
+exactly 9999 µs is refused — the device would silently reinterpret it as
+follower mode, so the library requires the explicit `FollowerProfile`
+spelling instead. The wire-level `(0, 0)` profile terminator and the 9999
+follower sentinel are library internals; neither appears in any public field.
+
 ### `OperatingMode`
 
 An `IntEnum` of the four per-channel working modes. The values are the
@@ -135,8 +240,8 @@ device's own wire codes — do not renumber.
 | `STROBE` | 2 | Programmed current/time pattern. |
 | `TRIGGER` | 3 | Pattern armed on the external trigger edge. Not available on MA/CA modules. |
 
-The current release configures NORMAL mode only; `STROBE`/`TRIGGER` can be
-activated with `set_active_mode`, but no API sets their parameters yet.
+The current release configures NORMAL and TRIGGER modes; `STROBE` can be
+activated with `set_active_mode`, but no API sets its parameters yet.
 
 ### `ControllerCapabilities`
 

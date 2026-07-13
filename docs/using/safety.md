@@ -1,6 +1,6 @@
 # Safety Notes for Real LEDs
 
-Four facts to internalize before driving real hardware.
+Five facts to internalize before driving real hardware.
 
 ## `Imax` is the LED's protection, not the controller's
 
@@ -27,6 +27,22 @@ try:
 finally:
     channel.set_active_mode(OperatingMode.DISABLE)  # light off, no matter what
 ```
+
+## Trigger configuration is never rejected — verify it, and reprogram disabled
+
+The device acknowledges every trigger-configuration command, even ones it
+silently altered: an over-ceiling TRIGGER limit is clamped, and profile step
+currents above the stored limit are clamped at write time. When the stored
+values protect an LED, read them back and compare before arming:
+
+```python
+channel.set_trigger_parameters(intended)
+assert channel.get_trigger_parameters() == intended   # ack is not verify
+```
+
+The device also silently accepts reprogramming while a channel is armed, and
+what that does to an executing profile is untested. Disable first, configure,
+verify, then arm — the full sequence is in [api.md](api.md#trigger-configuration-workflow).
 
 ## The device powers on into its last stored state
 
