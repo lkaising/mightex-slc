@@ -15,6 +15,8 @@ Follow-up notes for reviewing and refining the TRIGGER-mode implementation.
     remove the comment above it.
   - Tighten the `StepProfile` docstring and its `ValueError` message.
   - Tighten the `FollowerProfile` docstring.
+  - Confirm whether an empty `StepProfile` should remain the public
+    representation of a cleared profile.
   - Investigate whether `current_ma` can be validated against
     `TriggerParameters.current_max_ma`.
   - Reconsider whether all three contract models should live in the same
@@ -40,6 +42,8 @@ Follow-up notes for reviewing and refining the TRIGGER-mode implementation.
 - [ ] Revisit the `StepProfile` length validation in
   `ChannelModel.set_trigger_profile()`; the current approach is not fully
   satisfactory.
+  - Keep in mind that it remains unclear whether an SA-family "2 Steps"
+    limit means two usable steps plus the terminator or two entries total.
   - Pydantic validation would be preferable if feasible, although it may not
     be possible here.
   - The same preference applies to `_require_trigger_support()`; investigate
