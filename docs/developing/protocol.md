@@ -128,10 +128,10 @@ documented for future slices.
 | | `STRP ch step Iset Tset` | `##` | Strobe profile step. `step` 0–127; `Tset` in µs; a `0 0` pair must terminate the profile (so 127 usable steps; **2 usable on SA/SV/FA/FV/HA/HV/MA/CA**). **[V]** |
 | | `?STROBE ch` | `#Imax Repeat` | **[V]**, never exercised on hardware. |
 | | `?STRP ch` | multi-line `#Iset Tset` pairs | **[V]**, never exercised on hardware. |
-| | `TRIGGER ch Imax polarity` | `##` | Trigger params; polarity 0 rising, 1 falling. Not available on MA/CA. **[V][HW]** |
-| | `TRIGP ch step Iset Tset` | `##` | Trigger profile step, same semantics as `STRP`. Special: **first step with `Tset` = 9999 makes the output follow the trigger input level** ("follower mode") at `Iset`. **[V][HW]** |
+| | `TRIGGER ch Imax polarity` | `##` | Trigger params; polarity 0 rising, 1 falling. Not available on MA/CA. ⚠ No argument validation observed: Imax above the pulsed ceiling is silently clamped (3501 → stored 3500) and an invalid polarity (2) is stored verbatim, both acked `##` (2026-07-12; quirk #15). **[V][HW]** |
+| | `TRIGP ch step Iset Tset` | `##` | Trigger profile step, same semantics as `STRP`. Special: **first step with `Tset` = 9999 makes the output follow the trigger input level** ("follower mode") at `Iset`. ⚠ A step current above the stored TRIGGER Imax is silently clamped to it at write time, acked `##` (2026-07-12; quirk #15). **[V][HW]** |
 | | `?TRIGGER ch` | `#Imax polarity` e.g. `#1200 0` | **[HW]** |
-| | `?TRIGP ch` | `#Iset Tset …` | ⚠ Response format is **unstable/undocumented** — a structured parser was written, tested, and abandoned for substring matching. Treat as unverified territory. **[HW]** |
+| | `?TRIGP ch` | multi-line: `#Iset0 Tset0` then one `Iset Tset` line per step, terminator line included | Resolved 2026-07-12: stable and parseable under per-command hygiene, but **multi-line** — needs an extended quiet-drain read, not the standard single drain. See quirk #9 for the grammar. **[HW]** |
 | | `LoadVoltage ch` | `#ch:mV` e.g. `#1:3200` | Mixed-case command. Voltage-monitoring ("V") modules only; the controller samples on a 20 ms interval, so meaningful in NORMAL or slow strobe only. Non-"V" modules (like the bench SA04) have no voltage monitoring — expect failures; treat as best-effort. **[V][HW]** |
 | ● | `STORE` | `##` | Persist *all* current volatile settings (all channels, all modes) to non-volatile memory. **[V][HW]** |
 | | `RESET` | `##` | Soft reset. EchoOff is the default afterwards. **[V]** |
@@ -166,8 +166,15 @@ Four per-channel modes, integer codes **0 DISABLE, 1 NORMAL, 2 STROBE,
 cycle the device reloads the last STOREd state and each channel *resumes its
 stored mode immediately* (a channel stored in STROBE starts strobing at
 power-on). Factory defaults: every channel DISABLE; NORMAL Imax 20 mA /
-Iset 10 mA; STROBE and TRIGGER Imax 20 mA with empty profiles. The 20 mA
-default is a deliberate safety floor. **[V]**
+Iset 10 mA **[V][HW]**; STROBE Imax 20 mA with an empty profile **[V]**
+(unmeasured). ⚠ The vendor's trigger claim ("TRIGGER Imax 20 mA, empty
+profile") is **contradicted on the bench**: after `RESTOREDEF` on fw 3.1.8,
+every channel reads TRIGGER **Imax 10 mA, polarity 0/rising** (the polarity
+was previously undocumented), and the factory trigger profile is **not
+empty** — one (10 mA, 20 µs) step plus terminator (2026-07-12,
+[full report](../reports/2026-07-12-trigger-bench-probes.md)). The NORMAL
+control read 20/10 as documented, so the discrepancy is real, not a parsing
+artifact. The 20 mA NORMAL default is a deliberate safety floor. **[V][HW]**
 
 ## 7. Limits, resolution, and safety
 
@@ -188,8 +195,10 @@ default is a deliberate safety floor. **[V]**
   | FA / FV / XA / XV | 100 mA | 350 mA |
 
   Values between the NORMAL and pulsed ceilings are valid only in pulsed
-  modes. **[V][HW]** MA04-MU channel power limit is stated as 15 W in one
-  place and 18 W in another (vendor contradiction). **[V]**
+  modes. **[V][HW]** For TRIGGER configuration the pulsed ceiling is enforced
+  by **silent clamping**, not rejection (quirk #15). **[HW]** MA04-MU channel
+  power limit is stated as 15 W in one place and 18 W in another (vendor
+  contradiction). **[V]**
 - **Current resolution by module family** — a driver must not hardcode 1 mA:
   AA/AV/SA/SV/HA/HV/MA: **1 mA** (value 100 = 100 mA); FA/FV/XA/XV:
   **0.1 mA** (value 100 = 10.0 mA); CA: **5 mA** (values quantized, e.g.
@@ -228,14 +237,27 @@ The RS232 backend honors all of them. **[HW]**
    write/read rounds) read every write back fresh immediately under the
    per-command reset + drain recipe. The staleness is attributed to that
    earlier driver's weaker buffer hygiene, not firmware lag; this library
-   adds no delay. Mode round-trips never needed one.
-9. **`?TRIGP` response format varies.** A structured parser was written,
-   tested, and abandoned for substring verification. Re-derive from hardware
-   before trusting.
+   adds no delay. Mode round-trips never needed one. The same holds for
+   `?TRIGGER` after `TRIGGER`: 50/50 immediate reads fresh (2026-07-12).
+9. **`?TRIGP` is multi-line — read it with an extended drain.** Resolved
+   2026-07-12 (fw 3.1.8): the response is stable and parseable —
+   `#Iset0 Tset0 \r\n Iset1 Tset1 \r\n … 0 0 \r\n`, one line per step with
+   a trailing space before each `\r\n`, `#` on the first line only,
+   **terminator line included**, and the dump stops at the first `0 0`
+   (steps stored beyond the terminator are not reported); the follower
+   sentinel 9999 reads back verbatim. Every capture was byte-identical
+   across repeated reads. The historical "unstable/undocumented" verdict is
+   attributed to the predecessor reading only to the first CR — which
+   truncates this response by design — plus weaker buffer hygiene. ⚠ The
+   standard read-until-CR + 20 ms drain also truncates it: keep draining
+   until the line has been quiet for ~0.3 s. Raw captures:
+   [2026-07-12 report](../reports/2026-07-12-trigger-bench-probes.md).
 10. **Disable before reprogramming.** The proven trigger-follower sequence is
     `MODE ch 0` → `TRIGGER …` → `TRIGP …` (follower step, then `0 0`
     terminator) → `MODE ch 3`. Never reprogram parameters under an active
-    mode.
+    mode. The device does **not** enforce this: `TRIGGER` and `TRIGP` sent
+    while armed in MODE 3 are acked, take effect, and leave the channel
+    armed (2026-07-12). The rule is host-side only.
 11. **Program → verify → only then `STORE`.** Read settings back and compare
     before persisting; skip the store on any mismatch. Also: NV memory wears —
     don't `STORE` during experimentation.
@@ -248,6 +270,17 @@ The RS232 backend honors all of them. **[HW]**
     and mostly worked; the buffer hygiene above is why.)
 14. **Every command gets exactly one response** — the protocol is strictly
     request/reply at 9600 baud. **[V][HW]**
+15. **Trigger config is never rejected — it is clamped or stored verbatim.**
+    Twelve boundary `TRIGGER`/`TRIGP` arguments on fw 3.1.8 all answered
+    `##`; no `#?` was ever observed (2026-07-12). Imax above the pulsed
+    ceiling is silently clamped (3501 → stored 3500); a TRIGP step current
+    above the stored TRIGGER Imax is silently clamped to it **at write
+    time** (500 with Imax 100 → stored 100) — so `TRIGGER` before `TRIGP`
+    is load-bearing order; an invalid polarity (2) is stored verbatim; step
+    indexes 2/127/128 and Tset 100,000,000 all ack. An ack therefore does
+    not mean the device stored what was written: verifying means reading
+    back and comparing, and client-side validation is the only rejection a
+    user gets.
 
 ## 9. Unresolved protocol questions
 
@@ -265,8 +298,24 @@ Carried deliberately — answers require hardware or vendor contact. Do not
 5. **`DEVICEINFO` grammar** — only examples given, and they differ between
    documents and the real unit. Keyword parsing only.
 6. **Which module families are 2-step-limited** — inferred, not enumerated,
-   by the vendor.
+   by the vendor. Acks don't discriminate: on the bench SA04, `TRIGP` step
+   indexes 2, 127, and 128 all ack (2026-07-12); whether steps beyond the
+   family limit are stored or execute is untested.
 7. **QA family current resolution** — undocumented.
 8. **Non-Linux serial behavior** — all hardware experience is Linux
    (`/dev/ttyUSB0`, `dialout` group); macOS and Windows serial paths are
    unexercised.
+9. **Trigger execution-level behavior** — entirely untested: no trigger
+   source has ever been wired, so no profile has played. Pulse playback,
+   trigger latency, follower-mode output, restart-on-retrigger, and what an
+   armed channel does with a stored garbage polarity (2) or a mid-playback
+   reprogram are all unknown.
+10. **Stored values for acked-but-unread trigger limit cases** — Tset
+    100,000,000 (clamped or verbatim?), the step-128 write (ignored?
+    wrapped?), and 9999 on a non-first step (a plain duration?) were acked
+    on 2026-07-12 but never read back.
+11. **Re-clamping** — whether changing TRIGGER Imax after a profile is
+    stored re-scales, re-clamps, or leaves already-clamped step currents.
+12. **Whether `#?` can occur at all for `TRIGGER`/`TRIGP`** on this
+    firmware, or the response-code table's `#?` row simply does not apply
+    to trigger configuration.
