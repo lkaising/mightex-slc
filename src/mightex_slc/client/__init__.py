@@ -25,7 +25,18 @@ from .errors import (
     MightexLEDError,
     UnsupportedOperationError,
 )
-from .types import ControllerCapabilities, ModuleType, NormalParameters, OperatingMode
+from .types import (
+    ControllerCapabilities,
+    FollowerProfile,
+    ModuleType,
+    NormalParameters,
+    OperatingMode,
+    ProfileStep,
+    StepProfile,
+    TriggerParameters,
+    TriggerPolarity,
+    TriggerProfile,
+)
 
 __all__ = [
     "Channel",
@@ -35,10 +46,16 @@ __all__ = [
     "DeviceCommandError",
     "DeviceConnectionError",
     "DeviceNotFoundError",
+    "FollowerProfile",
     "MightexLEDError",
     "ModuleType",
     "NormalParameters",
     "OperatingMode",
+    "ProfileStep",
+    "StepProfile",
+    "TriggerParameters",
+    "TriggerPolarity",
+    "TriggerProfile",
     "UnsupportedOperationError",
     "open_device",
     "open_fake_device",

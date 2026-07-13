@@ -14,6 +14,16 @@ from .get_normal_parameters import (
     GetNormalParametersReply,
     GetNormalParametersRequest,
 )
+from .get_trigger_parameters import (
+    GetTriggerParametersOk,
+    GetTriggerParametersReply,
+    GetTriggerParametersRequest,
+)
+from .get_trigger_profile import (
+    GetTriggerProfileOk,
+    GetTriggerProfileReply,
+    GetTriggerProfileRequest,
+)
 from .open_device import OpenDeviceOk, OpenDeviceReply, OpenDeviceRequest
 from .persist_settings import (
     PersistSettingsOk,
@@ -31,6 +41,16 @@ from .set_normal_parameters import (
     SetNormalParametersReply,
     SetNormalParametersRequest,
 )
+from .set_trigger_parameters import (
+    SetTriggerParametersOk,
+    SetTriggerParametersReply,
+    SetTriggerParametersRequest,
+)
+from .set_trigger_profile import (
+    SetTriggerProfileOk,
+    SetTriggerProfileReply,
+    SetTriggerProfileRequest,
+)
 
 __all__ = [
     "ChannelRequest",
@@ -44,6 +64,12 @@ __all__ = [
     "GetNormalParametersOk",
     "GetNormalParametersReply",
     "GetNormalParametersRequest",
+    "GetTriggerParametersOk",
+    "GetTriggerParametersReply",
+    "GetTriggerParametersRequest",
+    "GetTriggerProfileOk",
+    "GetTriggerProfileReply",
+    "GetTriggerProfileRequest",
     "OpenDeviceOk",
     "OpenDeviceReply",
     "OpenDeviceRequest",
@@ -59,4 +85,10 @@ __all__ = [
     "SetNormalParametersOk",
     "SetNormalParametersReply",
     "SetNormalParametersRequest",
+    "SetTriggerParametersOk",
+    "SetTriggerParametersReply",
+    "SetTriggerParametersRequest",
+    "SetTriggerProfileOk",
+    "SetTriggerProfileReply",
+    "SetTriggerProfileRequest",
 ]

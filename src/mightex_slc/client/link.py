@@ -38,6 +38,12 @@ from ..contract import (
     GetNormalParametersOk,
     GetNormalParametersReply,
     GetNormalParametersRequest,
+    GetTriggerParametersOk,
+    GetTriggerParametersReply,
+    GetTriggerParametersRequest,
+    GetTriggerProfileOk,
+    GetTriggerProfileReply,
+    GetTriggerProfileRequest,
     NormalParameters,
     OpenDeviceOk,
     OpenDeviceReply,
@@ -55,6 +61,14 @@ from ..contract import (
     SetNormalParametersOk,
     SetNormalParametersReply,
     SetNormalParametersRequest,
+    SetTriggerParametersOk,
+    SetTriggerParametersReply,
+    SetTriggerParametersRequest,
+    SetTriggerProfileOk,
+    SetTriggerProfileReply,
+    SetTriggerProfileRequest,
+    TriggerParameters,
+    TriggerProfile,
 )
 from .errors import (
     ControllerClosedError,
@@ -107,6 +121,18 @@ _SET_NORMAL_PARAMETERS_REPLY: TypeAdapter[SetNormalParametersOk | Error] = TypeA
 _GET_NORMAL_PARAMETERS_REPLY: TypeAdapter[GetNormalParametersOk | Error] = TypeAdapter(
     GetNormalParametersReply
 )
+_SET_TRIGGER_PARAMETERS_REPLY: TypeAdapter[SetTriggerParametersOk | Error] = TypeAdapter(
+    SetTriggerParametersReply
+)
+_GET_TRIGGER_PARAMETERS_REPLY: TypeAdapter[GetTriggerParametersOk | Error] = TypeAdapter(
+    GetTriggerParametersReply
+)
+_SET_TRIGGER_PROFILE_REPLY: TypeAdapter[SetTriggerProfileOk | Error] = TypeAdapter(
+    SetTriggerProfileReply
+)
+_GET_TRIGGER_PROFILE_REPLY: TypeAdapter[GetTriggerProfileOk | Error] = TypeAdapter(
+    GetTriggerProfileReply
+)
 _SET_ACTIVE_MODE_REPLY: TypeAdapter[SetActiveModeOk | Error] = TypeAdapter(SetActiveModeReply)
 _GET_ACTIVE_MODE_REPLY: TypeAdapter[GetActiveModeOk | Error] = TypeAdapter(GetActiveModeReply)
 _PERSIST_SETTINGS_REPLY: TypeAdapter[PersistSettingsOk | Error] = TypeAdapter(PersistSettingsReply)
@@ -145,6 +171,52 @@ def get_normal_parameters(
     return _roundtrip(
         executor, "get_normal_parameters", request, _GET_NORMAL_PARAMETERS_REPLY
     ).result
+
+
+def set_trigger_parameters(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+    parameters: TriggerParameters,
+) -> None:
+    """Store TRIGGER-mode parameters for one channel; output unchanged."""
+    request = SetTriggerParametersRequest(
+        device_id=device_id, channel=channel, parameters=parameters
+    )
+    _roundtrip(executor, "set_trigger_parameters", request, _SET_TRIGGER_PARAMETERS_REPLY)
+
+
+def get_trigger_parameters(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+) -> TriggerParameters:
+    """Read back the TRIGGER-mode parameters stored for one channel."""
+    request = GetTriggerParametersRequest(device_id=device_id, channel=channel)
+    return _roundtrip(
+        executor, "get_trigger_parameters", request, _GET_TRIGGER_PARAMETERS_REPLY
+    ).result
+
+
+def set_trigger_profile(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+    profile: TriggerProfile,
+) -> None:
+    """Store a trigger profile for one channel; output unchanged."""
+    request = SetTriggerProfileRequest(device_id=device_id, channel=channel, profile=profile)
+    _roundtrip(executor, "set_trigger_profile", request, _SET_TRIGGER_PROFILE_REPLY)
+
+
+def get_trigger_profile(
+    executor: RequestExecutor,
+    device_id: str,
+    channel: int,
+) -> TriggerProfile:
+    """Read back the trigger profile stored for one channel."""
+    request = GetTriggerProfileRequest(device_id=device_id, channel=channel)
+    return _roundtrip(executor, "get_trigger_profile", request, _GET_TRIGGER_PROFILE_REPLY).result
 
 
 def set_active_mode(

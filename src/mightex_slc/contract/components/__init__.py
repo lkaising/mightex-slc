@@ -12,12 +12,21 @@ from .error_type import ErrorType
 from .module_type import ModuleType
 from .normal_parameters import NormalParameters
 from .operating_mode import OperatingMode
+from .profiles import FollowerProfile, ProfileStep, StepProfile, TriggerProfile
+from .trigger_parameters import TriggerParameters
+from .trigger_polarity import TriggerPolarity
 
 __all__ = [
     "ControllerCapabilities",
     "Error",
     "ErrorType",
+    "FollowerProfile",
     "ModuleType",
     "NormalParameters",
     "OperatingMode",
+    "ProfileStep",
+    "StepProfile",
+    "TriggerParameters",
+    "TriggerPolarity",
+    "TriggerProfile",
 ]

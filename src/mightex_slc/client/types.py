@@ -18,11 +18,28 @@ pair, and the controller capabilities; later slices widen the list as their
 operations land.
 """
 
-from ..contract import ControllerCapabilities, ModuleType, NormalParameters, OperatingMode
+from ..contract import (
+    ControllerCapabilities,
+    FollowerProfile,
+    ModuleType,
+    NormalParameters,
+    OperatingMode,
+    ProfileStep,
+    StepProfile,
+    TriggerParameters,
+    TriggerPolarity,
+    TriggerProfile,
+)
 
 __all__ = [
     "ControllerCapabilities",
+    "FollowerProfile",
     "ModuleType",
     "NormalParameters",
     "OperatingMode",
+    "ProfileStep",
+    "StepProfile",
+    "TriggerParameters",
+    "TriggerPolarity",
+    "TriggerProfile",
 ]
